@@ -9,10 +9,8 @@
   /* ============================================================
      PHANTOM WALLET — a learning recreation (TEST demo)
      Data-driven: see the DATA object in the script below.
-     4 working tabs: Home / Trade / Predict / Explore.
-     Side drawer + Profile + Manage Profile pages.
-     Toggle "Edit" (top-right) to click-edit values; saved to
-     your browser (localStorage).
+     Editing lives in a hidden Settings sheet: open the drawer
+     (tap the avatar) then tap "Help & Support".
      ============================================================ */
   :root{
     --bg:#000000;
@@ -61,12 +59,18 @@
 
   /* Top nav */
   .topnav{display:flex;align-items:center;gap:7px;padding:12px 2px 20px;}
-  .avatar{width:40px;height:40px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;
-    background:radial-gradient(circle at 35% 30%,#c9bdff,#9a86f5 55%,#7a63e6);box-shadow:0 2px 8px rgba(122,99,230,.4);border:0;}
-  .avatar:active{transform:scale(.92);}
   .pill{background:var(--pill);color:var(--muted);padding:9px 15px;border-radius:22px;font-size:15px;font-weight:500;cursor:pointer;transition:.18s;white-space:nowrap;}
   .pill.active{background:var(--accent);color:#241a44;}
   .pill:not(.active):hover{background:#2a2a2e;color:#d0d0d4;}
+
+  /* Shared emoji avatar (top-left, drawer, profile, manage) */
+  .emo{border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;line-height:1;cursor:default;
+    background:radial-gradient(circle at 50% 32%,#3a3a42,#17171b 82%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+    width:40px;height:40px;font-size:23px;border:0;padding:0;color:#fff;}
+  .emo.sm{width:28px;height:28px;font-size:16px;}
+  .emo.lg{width:92px;height:92px;font-size:50px;}
+  .emo.tap{cursor:pointer;}
+  .emo.tap:active{transform:scale(.92);}
 
   /* Views */
   .view{display:none;}
@@ -89,7 +93,6 @@
 
   /* Section headers on Home */
   .sec-head{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:600;margin:26px 2px 14px;cursor:pointer;}
-  .sec-head:first-of-type{margin-top:0;}
   .sec-head svg{width:20px;height:20px;stroke:#fff;}
   .tokens-head{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:600;margin:0 2px 14px;cursor:pointer;}
   .tokens-head svg{width:20px;height:20px;stroke:#fff;}
@@ -116,7 +119,6 @@
   .hcarousel{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;margin-bottom:8px;padding-bottom:4px;
     scrollbar-width:none;touch-action:pan-x;overscroll-behavior-x:contain;}
   .hcarousel::-webkit-scrollbar{display:none;}
-
   .perp{flex:0 0 46%;background:var(--card);border-radius:var(--radius);padding:16px;}
   .perp .pico{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:30px;overflow:hidden;}
   .perp .pico img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
@@ -124,7 +126,6 @@
   .perp .lev{background:#2a2a2e;color:#cfcfd4;font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;}
   .perp .pchg{font-size:16px;font-weight:700;margin-top:6px;}
   .perp .pchg.up{color:var(--green);}.perp .pchg.down{color:var(--red);}
-
   .pred{flex:0 0 72%;background:var(--card);border-radius:var(--radius);padding:16px;}
   .pred .ptile{width:56px;height:56px;border-radius:15px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
   .pred .pt{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -149,6 +150,13 @@
   .support-link svg{width:16px;height:16px;}
   .disclosures{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;padding:6px 0 18px;}
   .disclosures svg{width:14px;height:14px;}
+
+  /* Hidden-balances mode */
+  .phone.balances-hidden .balance,
+  .phone.balances-hidden .change,
+  .phone.balances-hidden .card-cash .amt,
+  .phone.balances-hidden .token .val,
+  .phone.balances-hidden .token .delta{filter:blur(10px);}
 
   /* Trade / swap */
   .swap-card{background:var(--card);border-radius:22px;padding:6px;position:relative;margin-bottom:16px;}
@@ -201,15 +209,6 @@
   .fab{width:54px;height:54px;border-radius:50%;flex:0 0 auto;background:var(--accent);color:#241a44;font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(171,159,242,.4);transition:.15s;}
   .fab:hover{transform:scale(1.06);}.fab:active{transform:scale(.94);}
 
-  /* ---- Default "hole" profile picture ---- */
-  .pfp{width:40px;height:40px;border-radius:50%;flex:0 0 auto;position:relative;
-    background:radial-gradient(circle at 50% 38%,#333338,#171719 78%);}
-  .pfp::after{content:"";position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);
-    width:54%;height:26%;border-radius:50%;background:#0b0b0d;
-    box-shadow:inset 0 2px 4px rgba(255,255,255,.18),0 1px 1px rgba(255,255,255,.06);}
-  .pfp.sm{width:28px;height:28px;}
-  .pfp.lg{width:92px;height:92px;}
-
   /* ---- Side drawer ---- */
   .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .32s ease;z-index:5;}
   .phone.drawer-open .scrim{opacity:1;pointer-events:auto;}
@@ -241,7 +240,6 @@
   .sheet.slide{transform:translateX(100%);z-index:21;}
   .sheet.slide.open{transform:none;}
   .sheet-grab{width:38px;height:5px;border-radius:3px;background:#3a3a3e;margin:0 auto 14px;flex:0 0 auto;}
-
   .prof-head{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
   .prof-head .handle{font-size:26px;font-weight:800;letter-spacing:-.3px;}
   .prof-top{display:flex;align-items:center;gap:20px;margin-bottom:18px;}
@@ -250,12 +248,10 @@
   .prof-stats .pv{font-size:20px;font-weight:700;margin-top:3px;}
   .prof-bio{font-size:16px;color:#fff;font-weight:500;min-height:6px;margin:0 2px 20px;white-space:pre-wrap;}
   .prof-actions{display:flex;gap:12px;margin-bottom:30px;}
-  .prof-btn{flex:1;background:#1c1c1e;color:#fff;border:0;font-family:var(--font);font-size:16px;font-weight:700;
-    padding:15px;border-radius:16px;cursor:pointer;transition:.15s;}
+  .prof-btn{flex:1;background:#1c1c1e;color:#fff;border:0;font-family:var(--font);font-size:16px;font-weight:700;padding:15px;border-radius:16px;cursor:pointer;transition:.15s;}
   .prof-btn:active{transform:scale(.98);}
   .prof-section{font-size:22px;font-weight:700;margin:2px 2px 16px;}
   .prof-activity{color:var(--muted);font-size:15px;}
-
   .mng-head{display:flex;align-items:center;gap:16px;margin-bottom:10px;}
   .mng-head .title{font-size:24px;font-weight:800;letter-spacing:-.3px;}
   .mng-avatar{position:relative;width:92px;height:92px;margin:18px auto 26px;}
@@ -271,15 +267,55 @@
   .mng-row .v .val{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .mng-row .chev{width:16px;height:16px;flex:0 0 auto;stroke:#5a5a5e;}
 
-  /* Chrome (toolbar) */
-  .toolbar{position:fixed;top:18px;right:18px;display:flex;gap:8px;z-index:50;}
-  .toolbar button{background:#1c1c1e;color:#fff;border:1px solid #333;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:.15s;}
-  .toolbar button:hover{background:#2a2a2c;}
-  .toolbar button.on{background:var(--accent);color:#241a44;border-color:var(--accent);}
+  /* ---- Settings sheet (hidden editor) ---- */
+  .veil{position:absolute;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    opacity:0;pointer-events:none;transition:opacity .25s ease;}
+  .veil.open{opacity:1;pointer-events:auto;}
+  .veil.center{align-items:center;z-index:40;}
+  .settings-card{width:100%;max-height:90%;background:#17171c;border-radius:22px 22px 0 0;display:flex;flex-direction:column;
+    transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);}
+  .veil.open .settings-card{transform:none;}
+  .settings-top{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 10px;flex:0 0 auto;}
+  .settings-top h3{font-size:20px;font-weight:800;}
+  .settings-x{width:30px;height:30px;border-radius:50%;background:#26262b;border:0;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .settings-body{overflow-y:auto;padding:0 20px 24px;scrollbar-width:none;}
+  .settings-body::-webkit-scrollbar{display:none;}
+  .s-label{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin:18px 2px 10px;}
+  .s-row{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+  .s-k{width:66px;flex:0 0 auto;color:var(--muted);font-size:15px;font-weight:600;}
+  .s-in{flex:1;background:#242429;border:1px solid #303036;border-radius:12px;color:#fff;font-family:var(--font);
+    font-size:16px;font-weight:600;padding:12px 14px;outline:none;width:100%;-webkit-appearance:none;appearance:none;}
+  .s-in:focus{border-color:var(--accent);}
+  select.s-in{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%238a8a8e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;}
+  .emoji-chip{width:52px;height:52px;border-radius:14px;background:#242429;border:1px solid #303036;font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;}
+  .emoji-chip:active{transform:scale(.94);}
+  .switch{position:relative;display:inline-flex;align-items:center;cursor:pointer;flex:0 0 auto;}
+  .switch input{position:absolute;opacity:0;width:0;height:0;}
+  .switch .track{width:46px;height:28px;border-radius:999px;background:#3a3a40;transition:.2s;position:relative;display:block;}
+  .switch .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s;}
+  .switch input:checked + .track{background:var(--accent);}
+  .switch input:checked + .track::after{transform:translateX(18px);}
+  .s-tok{background:#1e1e23;border-radius:14px;padding:12px 14px;margin-bottom:10px;}
+  .s-tok-head{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;margin-bottom:10px;}
+  .s-tok-head .ico{width:26px;height:26px;font-size:9px;}
+  .s-tok-head .ico img{width:100%;height:100%;}
+  .s-tok-head .badge{display:none;}
+  .s-tok-fields{display:flex;gap:10px;}
+  .s-tok-fields label{flex:1;display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px;font-weight:600;}
+  .s-reset{width:100%;margin-top:16px;background:#2a1f1f;color:#ff7b7b;border:0;border-radius:12px;padding:14px;font-family:var(--font);font-weight:700;font-size:15px;cursor:pointer;}
+  .s-reset:active{transform:scale(.99);}
+  /* emoji picker */
+  .emoji-card{width:88%;max-width:320px;background:#17171c;border-radius:20px;padding:16px 4px 18px;transform:scale(.94);transition:transform .2s ease;}
+  .veil.open .emoji-card{transform:none;}
+  .emoji-head{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;}
+  .emoji-head h3{font-size:17px;font-weight:800;}
+  #emojiInput{margin:0 16px 12px;text-align:center;font-size:22px;}
+  .emoji-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:0 16px;}
+  .emoji-grid button{aspect-ratio:1;border:0;background:#242429;border-radius:12px;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;}
+  .emoji-grid button:active{background:#33333a;}
 
-  body.editing [data-edit]{outline:1.5px dashed var(--accent);outline-offset:3px;border-radius:4px;cursor:text;}
-  [data-edit]:focus{outline:1.5px solid var(--accent);}
-  .hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;}
+  .hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;text-align:center;max-width:90vw;}
 </style>
 <!-- krypt:phone:start -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -294,11 +330,6 @@
 <!-- krypt:phone:end -->
 </head>
 <body>
-
-<div class="toolbar">
-  <button id="editBtn">✎ Edit</button>
-  <button id="resetBtn">↺ Reset</button>
-</div>
 
 <div class="phone" id="phone">
 
@@ -315,9 +346,7 @@
     <div class="screen">
       <!-- Top nav (working tabs) -->
       <div class="topnav">
-        <button class="avatar" id="openDrawer" aria-label="Open menu">
-          <svg viewBox="0 0 40 40" width="28" height="28"><path d="M20 6c-7 0-12 5-12 12v8.6c0 1.6 1.9 2.4 3.1 1.3l1.7-1.5c.6-.5 1.5-.5 2.1 0l1.9 1.7c.6.5 1.5.5 2.1 0l1.9-1.7c.6-.5 1.5-.5 2.1 0l1.7 1.5c1.2 1.1 3.1.3 3.1-1.3V18c0-7-5-12-11.7-12z" fill="#fff"/><ellipse cx="16.4" cy="18.4" rx="1.9" ry="2.5" fill="#7a63e6"/><ellipse cx="23.6" cy="18.4" rx="1.9" ry="2.5" fill="#7a63e6"/></svg>
-        </button>
+        <button class="emo tap js-emoji" id="openDrawer" aria-label="Open menu"></button>
         <div class="pill active" data-view="home">Home</div>
         <div class="pill" data-view="trade">Trade</div>
         <div class="pill" data-view="predict">Predict</div>
@@ -327,20 +356,20 @@
       <!-- HOME -->
       <div class="view active" id="view-home">
         <div class="account">
-          <span data-edit="account">GG.xyz MS1</span>
+          <span class="js-name">Main</span>
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#8a8a8e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="balance">$<span id="balance" data-edit="balance">6.21</span></div>
+        <div class="balance"><span class="cur js-cur">$</span><span id="balance">6.21</span></div>
         <div class="change">
-          <span class="abs">+$<span data-edit="changeAbs">0.0753</span></span>
-          <span class="pct">+<span data-edit="changePct">1.23</span>%</span>
+          <span class="abs">+<span class="cur js-cur">$</span><span id="changeAbs">0.0753</span></span>
+          <span class="pct">+<span id="changePct">1.23</span>%</span>
         </div>
         <div class="card-cash">
           <div class="left">
             <div class="cash-ico"><svg viewBox="0 0 44 44" width="40" height="40" fill="none"><rect x="5" y="13" width="34" height="18" rx="4.5" stroke="#9a9a9e" stroke-width="2.4"/><circle cx="22" cy="22" r="4.6" stroke="#9a9a9e" stroke-width="2.4"/><path d="M9 16.5v11M35 16.5v11" stroke="#9a9a9e" stroke-width="2.4" stroke-linecap="round"/></svg></div>
             <span>Cash</span>
           </div>
-          <div class="amt">$<span data-edit="cash">0.28</span></div>
+          <div class="amt"><span class="cur js-cur">$</span><span id="cashVal">0.28</span></div>
         </div>
 
         <div class="tokens-head">Tokens
@@ -405,7 +434,7 @@
           <div class="swap-row">
             <div>
               <div class="swap-label">You pay</div>
-              <div class="swap-amt" data-edit="tradePay">0.025</div>
+              <div class="swap-amt">0.025</div>
               <div class="swap-usd">&#8776; $1.94</div>
             </div>
             <div class="swap-token"><span class="ico" id="swapIcoA"></span>SOL &#9662;</div>
@@ -414,7 +443,7 @@
           <div class="swap-row">
             <div>
               <div class="swap-label">You receive</div>
-              <div class="swap-amt" data-edit="tradeRecv">1.93</div>
+              <div class="swap-amt">1.93</div>
               <div class="swap-usd">&#8776; $1.93</div>
             </div>
             <div class="swap-token"><span class="ico" id="swapIcoB"></span>USDC &#9662;</div>
@@ -458,15 +487,15 @@
   <!-- Side drawer -->
   <aside class="drawer" id="drawer">
     <div class="drawer-top">
-      <div class="pfp"></div>
+      <div class="emo js-emoji"></div>
       <button class="icon-btn" aria-label="Copy address">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>
       </button>
     </div>
     <div class="drawer-user js-username">@sample</div>
     <button class="drawer-acct">
-      <div class="pfp sm"></div>
-      <span>Main</span>
+      <div class="emo sm js-emoji"></div>
+      <span class="js-name">Main</span>
       <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#8a8a8e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <nav class="drawer-nav">
@@ -492,7 +521,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.2-1.3L14 2h-4l-.3 2.7a7 7 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.2 1.3L10 22h4l.3-2.7a7 7 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3z"/></svg>
         Settings
       </button>
-      <button class="dnav">
+      <button class="dnav" id="openSettings">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 3.5"/><circle cx="12" cy="17.5" r="0.6" fill="currentColor"/></svg>
         Help &amp; Support
       </button>
@@ -509,7 +538,7 @@
       <span class="handle js-username">@sample</span>
     </div>
     <div class="prof-top">
-      <div class="pfp lg"></div>
+      <div class="emo lg js-emoji"></div>
       <div class="prof-stats">
         <div><div class="pk">Trade Volume</div><div class="pv">$0.00</div></div>
         <div><div class="pk">Followers</div><div class="pv">0</div></div>
@@ -534,21 +563,21 @@
       <span class="title">Manage Profile</span>
     </div>
     <div class="mng-avatar">
-      <div class="pfp lg"></div>
-      <button class="pencil-badge" aria-label="Edit picture">
+      <div class="emo lg js-emoji"></div>
+      <button class="pencil-badge" id="editEmoji" aria-label="Edit emoji">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M14.5 5.5l4 4"/></svg>
       </button>
     </div>
     <div class="mng-label">About</div>
     <div class="mng-group">
-      <div class="mng-row">
+      <div class="mng-row" data-open="settings">
         <span class="k">Username</span>
-        <span class="v"><span class="val js-username" data-edit="username">@sample</span>
+        <span class="v"><span class="val js-username">@sample</span>
           <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </div>
-      <div class="mng-row">
+      <div class="mng-row" data-open="settings">
         <span class="k">Bio</span>
-        <span class="v"><span class="val js-bio" data-edit="bio"></span>
+        <span class="v"><span class="val js-bio"></span>
           <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </div>
       <div class="mng-row">
@@ -576,14 +605,80 @@
     </div>
   </section>
 
+  <!-- Settings sheet (hidden editor) -->
+  <div class="veil" id="settingsVeil">
+    <div class="settings-card">
+      <div class="settings-top">
+        <h3>Settings</h3>
+        <button class="settings-x" data-close="settings" aria-label="Close">&#10005;</button>
+      </div>
+      <div class="settings-body">
+        <div class="s-label">Profile</div>
+        <div class="s-row">
+          <span class="s-k">Emoji</span>
+          <button class="emoji-chip js-emoji" id="emojiChip" type="button"></button>
+        </div>
+        <div class="s-row">
+          <span class="s-k">@</span>
+          <input class="s-in" id="setUsername" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sample">
+        </div>
+        <div class="s-row">
+          <span class="s-k">Name</span>
+          <input class="s-in" id="setName" autocomplete="off" placeholder="Main">
+        </div>
+
+        <div class="s-label">Currency</div>
+        <div class="s-row">
+          <span class="s-k">Display</span>
+          <select class="s-in" id="setCurrency">
+            <option value="USD">$ USD</option>
+            <option value="EUR">&#8364; EUR</option>
+            <option value="GBP">&#163; GBP</option>
+            <option value="JPY">&#165; JPY</option>
+            <option value="AUD">A$ AUD</option>
+            <option value="CAD">C$ CAD</option>
+          </select>
+        </div>
+
+        <div class="s-label">Balance</div>
+        <div class="s-row">
+          <span class="s-k">Total</span>
+          <input class="s-in" id="setBalance" inputmode="decimal" autocomplete="off" placeholder="0">
+        </div>
+        <div class="s-row">
+          <span class="s-k">Show</span>
+          <label class="switch"><input type="checkbox" id="setVisible"><span class="track"></span></label>
+          <span style="color:var(--muted);font-weight:600">Visible</span>
+        </div>
+
+        <div class="s-label">Tokens</div>
+        <div id="setTokens"></div>
+
+        <button class="s-reset" id="setReset" type="button">Reset to defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Emoji picker -->
+  <div class="veil center" id="emojiVeil">
+    <div class="emoji-card">
+      <div class="emoji-head">
+        <h3>Choose emoji</h3>
+        <button class="settings-x" data-close="emoji" aria-label="Close">&#10005;</button>
+      </div>
+      <input class="s-in" id="emojiInput" placeholder="Type or paste any emoji" maxlength="12" autocomplete="off">
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+  </div>
+
 </div>
 
-<div class="hint">Tap the ghost avatar for the menu · Home · Trade · Predict · Explore · Toggle Edit to change values</div>
+<div class="hint">Tap the avatar → “Help &amp; Support” to edit everything · Home · Trade · Predict · Explore</div>
 
 <script>
 /* ============================================================
-   DATA — edit freely. tokens[], perps[], predictions[],
-   markets[], trending[], plus identity (username/bio).
+   DATA — the whole wallet is driven from here and edited through
+   the Settings sheet (drawer → Help & Support).
    ============================================================ */
 const ICONS = {
   ETH:  `<span class="ico" style="background:#fff"><svg viewBox="0 0 32 32" width="28" height="28"><polygon points="16,4 16,13 23,16.5" fill="#343434"/><polygon points="16,4 9,16.5 16,13" fill="#8c8c8c"/><polygon points="16,21 16,28 23,17.9" fill="#343434"/><polygon points="16,28 16,21 9,17.9" fill="#8c8c8c"/><polygon points="16,19.7 23,16.5 16,13" fill="#131313"/><polygon points="16,13 9,16.5 16,19.7" fill="#393939"/></svg></span>`,
@@ -593,30 +688,36 @@ const ICONS = {
   DOGE: `<span class="ico" style="background:#111;color:#fff;font-size:11px">DOGE<span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
   HAT:  `<span class="ico" style="background:#111;color:#fff;font-size:12px">HAT<span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
 };
-
-/* Perps icons (round chips) */
 const PERP_ICON = {
   BTC:  `<span class="pico" style="background:#f7931a;color:#fff;font-size:24px;font-weight:800">&#8383;</span>`,
   ETH:  `<span class="pico" style="background:#23242a"><svg viewBox="0 0 32 32" width="26" height="26"><polygon points="16,4 16,13 23,16.5" fill="#c9c9d0"/><polygon points="16,4 9,16.5 16,13" fill="#8c8c96"/><polygon points="16,21 16,28 23,17.9" fill="#c9c9d0"/><polygon points="16,28 16,21 9,17.9" fill="#8c8c96"/><polygon points="16,19.7 23,16.5 16,13" fill="#6f6f79"/><polygon points="16,13 9,16.5 16,19.7" fill="#a2a2ac"/></svg></span>`,
   SOL:  `<span class="pico" style="background:#000"><img src="assets/coins/sol.png" alt="" draggable="false"></span>`,
 };
-
-/* Prediction tiles */
 const PRED_TILE = {
   f1:     `<span class="ptile" style="background:#12b39a"><svg viewBox="0 0 32 32" width="30" height="30" fill="#fff"><path d="M16 6a10 10 0 0 0-9.8 12H18a6 6 0 0 0 6-5.2A8 8 0 0 0 16 6z"/><rect x="6.4" y="18.4" width="12.2" height="3.6" rx="1.8"/></svg></span>`,
   astros: `<span class="ptile" style="background:linear-gradient(135deg,#0b5cff 50%,#f7c948 50%)"><svg viewBox="0 0 32 32" width="26" height="26"><circle cx="16" cy="16" r="12" fill="#fff"/><path d="M9 8c3 4 3 12 0 16M23 8c-3 4-3 12 0 16" stroke="#d33" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></span>`,
 };
+const CURRENCIES={USD:"$",EUR:"€",GBP:"£",JPY:"¥",AUD:"A$",CAD:"C$"};
+function curSym(){return CURRENCIES[DATA.currency]||"$";}
 
 const DEFAULT_DATA = {
-  username:"@sample",
+  emoji:"👻",      /* 👻 ghost */
+  username:"sample",
+  name:"Main",
+  currency:"USD",
+  balance:"6.21",
+  cash:"0.28",
+  changeAbs:"0.0753",
+  changePct:"1.23",
+  balanceVisible:true,
   bio:"",
   tokens:[
-    {sym:"ETH",  name:"Ethereum",  v:true,  qty:"0.00158 ETH",  val:"2.99", delta:"+$0.04",  dir:"up"},
-    {sym:"SOL",  name:"Solana",    v:true,  qty:"0.02504 SOL",  val:"1.94", delta:"+$0.03",  dir:"up"},
-    {sym:"USDT", name:"Tether USD",v:true,  qty:"0.72 USDT",    val:"0.72", delta:"-<$0.01", dir:"down"},
-    {sym:"USDC", name:"USDC",      v:true,  qty:"0.27218 USDC", val:"0.27", delta:"-<$0.01", dir:"down"},
-    {sym:"DOGE", name:"Moon Doge",v:false, qty:"1 DOGE",       val:"<0.01",delta:"+<$0.01", dir:"up"},
-    {sym:"HAT",  name:"Wizard Hat", v:false, qty:"1 HAT",        val:"<0.01",delta:"+<$0.01", dir:"up"},
+    {sym:"ETH",  name:"Ethereum",  v:true,  amount:"0.00158", val:"2.99", delta:"+$0.04",  dir:"up"},
+    {sym:"SOL",  name:"Solana",    v:true,  amount:"0.02504", val:"1.94", delta:"+$0.03",  dir:"up"},
+    {sym:"USDT", name:"Tether USD",v:true,  amount:"0.72",    val:"0.72", delta:"-<$0.01", dir:"down"},
+    {sym:"USDC", name:"USDC",      v:true,  amount:"0.27218", val:"0.27", delta:"-<$0.01", dir:"down"},
+    {sym:"DOGE", name:"Moon Doge", v:false, amount:"1",       val:"<0.01",delta:"+<$0.01", dir:"up"},
+    {sym:"HAT",  name:"Wizard Hat",v:false, amount:"1",       val:"<0.01",delta:"+<$0.01", dir:"up"},
   ],
   perps:[
     {sym:"BTC", lev:"40x", chg:"+0.25%", dir:"up"},
@@ -649,28 +750,31 @@ function save(){localStorage.setItem(STORE_KEY,JSON.stringify(DATA));}
 
 const verify=`<svg class="verify" viewBox="0 0 24 24"><path d="M12 2l2.2 1.5 2.6-.4 1.3 2.3 2.3 1.3-.4 2.6L23 12l-1.5 2.2.4 2.6-2.3 1.3-1.3 2.3-2.6-.4L12 22l-2.2-1.5-2.6.4-1.3-2.3-2.3-1.3.4-2.6L1 12l1.5-2.2-.4-2.6 2.3-1.3 1.3-2.3 2.6.4z" fill="#ab9ff2"/><path d="M8.4 12l2.4 2.3 4.6-4.8" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
+function iconFor(sym){return ICONS[sym]||`<span class="ico" style="background:#333">${sym}</span>`;}
+
 function renderTokens(){
   const list=document.getElementById("tokenList");list.innerHTML="";
   DATA.tokens.forEach((t,i)=>{
+    const qtyText=(t.amount!=null)?(t.amount+" "+t.sym):(t.qty||"");
     const row=document.createElement("div");row.className="token";row.style.animationDelay=(i*65)+"ms";
-    row.innerHTML=`${ICONS[t.sym]||`<span class="ico" style="background:#333">${t.sym}</span>`}
-      <div class="mid"><div class="name"><span data-edit="tok-${i}-name">${t.name}</span>${t.v?verify:""}</div>
-      <div class="qty" data-edit="tok-${i}-qty">${t.qty}</div></div>
-      <div class="rt"><div class="val">$<span data-edit="tok-${i}-val">${t.val}</span></div>
-      <div class="delta ${t.dir}" data-edit="tok-${i}-delta">${t.delta}</div></div>`;
-    row.addEventListener("click",()=>{if(!editing())pulse(row);});
+    row.innerHTML=`${iconFor(t.sym)}
+      <div class="mid"><div class="name"><span>${t.name}</span>${t.v?verify:""}</div>
+      <div class="qty">${qtyText}</div></div>
+      <div class="rt"><div class="val">${curSym()}<span>${t.val}</span></div>
+      <div class="delta ${t.dir}">${t.delta}</div></div>`;
+    row.addEventListener("click",()=>pulse(row));
     list.appendChild(row);
   });
-  document.getElementById("swapIcoA").outerHTML=ICONS.SOL;
-  document.getElementById("swapIcoB").outerHTML=ICONS.USDC;
+  const a=document.getElementById("swapIcoA");if(a)a.outerHTML=ICONS.SOL;
+  const b=document.getElementById("swapIcoB");if(b)b.outerHTML=ICONS.USDC;
 }
 function renderPerps(){
   const el=document.getElementById("perpList");el.innerHTML="";
   DATA.perps.forEach((p,i)=>{
     const c=document.createElement("div");c.className="perp";
     c.innerHTML=`${PERP_ICON[p.sym]||`<span class="pico" style="background:#333">${p.sym}</span>`}
-      <div class="psym"><span data-edit="perp-${i}-sym">${p.sym}</span><span class="lev" data-edit="perp-${i}-lev">${p.lev}</span></div>
-      <div class="pchg ${p.dir}" data-edit="perp-${i}-chg">${p.chg}</div>`;
+      <div class="psym"><span>${p.sym}</span><span class="lev">${p.lev}</span></div>
+      <div class="pchg ${p.dir}">${p.chg}</div>`;
     el.appendChild(c);
   });
 }
@@ -679,8 +783,7 @@ function renderPredictions(){
   DATA.predictions.forEach((p,i)=>{
     const c=document.createElement("div");c.className="pred";
     c.innerHTML=`${PRED_TILE[p.ic]||`<span class="ptile" style="background:#333"></span>`}
-      <div class="pt" data-edit="pred-${i}-title">${p.title}</div>
-      <div class="pw" data-edit="pred-${i}-when">${p.when}</div>`;
+      <div class="pt">${p.title}</div><div class="pw">${p.when}</div>`;
     el.appendChild(c);
   });
 }
@@ -688,9 +791,9 @@ function renderMarkets(){
   const el=document.getElementById("marketList");el.innerHTML="";
   DATA.markets.forEach((m,i)=>{
     const c=document.createElement("div");c.className="market";c.style.animationDelay=(i*65)+"ms";
-    c.innerHTML=`<div class="q" data-edit="mkt-${i}-q">${m.q}</div><div class="vol" data-edit="mkt-${i}-vol">${m.vol}</div>
-      <div class="odds"><button class="yes">Yes <span data-edit="mkt-${i}-yes">${m.yes}</span>&#162;</button>
-      <button class="no">No <span data-edit="mkt-${i}-no">${m.no}</span>&#162;</button></div>`;
+    c.innerHTML=`<div class="q">${m.q}</div><div class="vol">${m.vol}</div>
+      <div class="odds"><button class="yes">Yes ${m.yes}&#162;</button>
+      <button class="no">No ${m.no}&#162;</button></div>`;
     el.appendChild(c);
   });
 }
@@ -698,75 +801,53 @@ function renderTrending(){
   const el=document.getElementById("trendList");el.innerHTML="";
   DATA.trending.forEach((t,i)=>{
     const r=document.createElement("div");r.className="trend";r.style.animationDelay=(i*55)+"ms";
-    r.innerHTML=`<span class="rank">${i+1}</span>${ICONS[t.sym]||`<span class="ico" style="background:#333">${t.sym}</span>`}
-      <div class="mid"><div class="tn" data-edit="tr-${i}-name">${t.name}</div><div class="ts" data-edit="tr-${i}-sub">${t.sub}</div></div>
-      <div class="rt"><div class="tp" data-edit="tr-${i}-price">${t.price}</div><div class="tc ${t.dir}" data-edit="tr-${i}-chg">${t.chg}</div></div>`;
+    r.innerHTML=`<span class="rank">${i+1}</span>${iconFor(t.sym)}
+      <div class="mid"><div class="tn">${t.name}</div><div class="ts">${t.sub}</div></div>
+      <div class="rt"><div class="tp">${t.price}</div><div class="tc ${t.dir}">${t.chg}</div></div>`;
     el.appendChild(r);
   });
 }
 function pulse(el){el.animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:220,easing:"ease"});}
-function editing(){return document.body.classList.contains("editing");}
 
-/* keep every @username / bio copy in sync with DATA */
-function syncIdentity(except){
-  document.querySelectorAll(".js-username").forEach(el=>{if(el!==except)el.textContent=DATA.username||"@sample";});
-  document.querySelectorAll(".js-bio").forEach(el=>{if(el!==except)el.textContent=DATA.bio||"";});
+/* ---- apply DATA to the DOM ---- */
+function applyIdentity(){
+  document.querySelectorAll(".js-emoji").forEach(e=>e.textContent=DATA.emoji||"👻");
+  document.querySelectorAll(".js-username").forEach(e=>e.textContent="@"+(DATA.username||"sample"));
+  document.querySelectorAll(".js-name").forEach(e=>e.textContent=DATA.name||"Main");
+  document.querySelectorAll(".js-bio").forEach(e=>e.textContent=DATA.bio||"");
+}
+function applyCurrency(){
+  document.querySelectorAll(".js-cur").forEach(e=>e.textContent=curSym());
+  renderTokens();
+}
+function applyBalance(){
+  document.getElementById("cashVal").textContent=DATA.cash;
+  document.getElementById("changeAbs").textContent=DATA.changeAbs;
+  document.getElementById("changePct").textContent=DATA.changePct;
+  document.getElementById("phone").classList.toggle("balances-hidden",!DATA.balanceVisible);
 }
 
 /* balance count-up */
 function animateBalance(){
   const el=document.getElementById("balance");
-  const target=parseFloat(DATA.balance ?? el.textContent)||0;let t0=null;
+  const target=parseFloat(DATA.balance)||0;let t0=null;
   function step(ts){if(!t0)t0=ts;const p=Math.min((ts-t0)/900,1),e=1-Math.pow(1-p,3);el.textContent=(target*e).toFixed(2);if(p<1)requestAnimationFrame(step);}
   requestAnimationFrame(step);
 }
 
-/* editing */
-function bindEdits(){
-  document.querySelectorAll("[data-edit]").forEach(el=>{
-    el.setAttribute("contenteditable",editing());
-    el.oninput=()=>{
-      const k=el.getAttribute("data-edit"),v=el.textContent;
-      let m;
-      if(m=k.match(/^tok-(\d+)-(\w+)$/))DATA.tokens[+m[1]][m[2]]=v;
-      else if(m=k.match(/^perp-(\d+)-(\w+)$/))DATA.perps[+m[1]][m[2]]=v;
-      else if(m=k.match(/^pred-(\d+)-(\w+)$/))DATA.predictions[+m[1]][m[2]]=v;
-      else if(m=k.match(/^mkt-(\d+)-(\w+)$/))DATA.markets[+m[1]][m[2]]=v;
-      else if(m=k.match(/^tr-(\d+)-(\w+)$/))DATA.trending[+m[1]][m[2]]=v;
-      else DATA[k]=v;
-      if(k==="username"||k==="bio")syncIdentity(el);
-      save();
-    };
-  });
-}
-document.getElementById("editBtn").addEventListener("click",function(){
-  const on=document.body.classList.toggle("editing");
-  this.classList.toggle("on",on);this.textContent=on?"✓ Done":"✎ Edit";bindEdits();
-});
-document.getElementById("resetBtn").addEventListener("click",()=>{
-  if(confirm("Reset this dashboard to its original values?")){
-    localStorage.removeItem(STORE_KEY);DATA=structuredClone(DEFAULT_DATA);
-    renderAll();restoreScalars();syncIdentity();animateBalance();
-  }
-});
-function restoreScalars(){
-  document.querySelectorAll("[data-edit]").forEach(el=>{
-    const k=el.getAttribute("data-edit");
-    if(/^(tok|perp|pred|mkt|tr)-/.test(k)||k==="balance")return;
-    if(DATA[k]!==undefined)el.textContent=DATA[k];
-  });
-}
-
 /* ---- drawer + sheets ---- */
 const phone=document.getElementById("phone");
-function openDrawer(){if(editing())return;phone.classList.add("drawer-open");}
+function openDrawer(){phone.classList.add("drawer-open");}
 function closeDrawer(){phone.classList.remove("drawer-open");}
 document.getElementById("openDrawer").addEventListener("click",openDrawer);
 document.getElementById("scrim").addEventListener("click",closeDrawer);
 
 const sheets={profile:document.getElementById("profileSheet"),manage:document.getElementById("manageSheet")};
-function openSheet(name){syncIdentity();sheets[name].classList.add("open");}
+const veils={settings:document.getElementById("settingsVeil"),emoji:document.getElementById("emojiVeil")};
+function openSheet(name){applyIdentity();sheets[name].classList.add("open");}
 function closeSheet(name){sheets[name].classList.remove("open");}
+function openVeil(name){veils[name].classList.add("open");}
+function closeVeil(name){veils[name].classList.remove("open");}
 
 document.querySelectorAll("[data-nav]").forEach(b=>{
   b.addEventListener("click",()=>{
@@ -776,8 +857,77 @@ document.querySelectorAll("[data-nav]").forEach(b=>{
   });
 });
 document.querySelectorAll("[data-close]").forEach(b=>{
-  b.addEventListener("click",()=>{closeSheet(b.getAttribute("data-close"));});
+  b.addEventListener("click",()=>{
+    const c=b.getAttribute("data-close");
+    if(c==="profile"||c==="manage")closeSheet(c); else closeVeil(c);
+  });
 });
+
+/* ---- Settings sheet ---- */
+function openSettings(){
+  document.getElementById("setUsername").value=DATA.username||"";
+  document.getElementById("setName").value=DATA.name||"";
+  document.getElementById("setCurrency").value=DATA.currency||"USD";
+  document.getElementById("setBalance").value=DATA.balance||"";
+  document.getElementById("setVisible").checked=!!DATA.balanceVisible;
+  renderTokenSettings();
+  applyIdentity(); /* refresh emoji chip */
+  openVeil("settings");
+}
+document.getElementById("openSettings").addEventListener("click",()=>{closeDrawer();openSettings();});
+document.querySelectorAll('[data-open="settings"]').forEach(el=>el.addEventListener("click",openSettings));
+
+document.getElementById("setUsername").addEventListener("input",function(){DATA.username=this.value.replace(/^@+/,"");applyIdentity();save();});
+document.getElementById("setName").addEventListener("input",function(){DATA.name=this.value;applyIdentity();save();});
+document.getElementById("setCurrency").addEventListener("change",function(){DATA.currency=this.value;applyCurrency();save();});
+document.getElementById("setBalance").addEventListener("input",function(){DATA.balance=this.value;document.getElementById("balance").textContent=this.value;save();});
+document.getElementById("setVisible").addEventListener("change",function(){DATA.balanceVisible=this.checked;phone.classList.toggle("balances-hidden",!this.checked);save();});
+document.getElementById("setReset").addEventListener("click",()=>{
+  if(confirm("Reset the whole wallet to its default values?")){
+    localStorage.removeItem(STORE_KEY);DATA=structuredClone(DEFAULT_DATA);
+    renderAll();applyIdentity();applyCurrency();applyBalance();animateBalance();openSettings();
+  }
+});
+
+function renderTokenSettings(){
+  const el=document.getElementById("setTokens");el.innerHTML="";
+  DATA.tokens.forEach((t,i)=>{
+    const d=document.createElement("div");d.className="s-tok";
+    d.innerHTML=`<div class="s-tok-head">${iconFor(t.sym)}<span>${t.name} (${t.sym})</span></div>
+      <div class="s-tok-fields">
+        <label>Amount<input class="s-in" data-tok="${i}" data-field="amount" inputmode="decimal" autocomplete="off"></label>
+        <label>Value ${curSym()}<input class="s-in" data-tok="${i}" data-field="val" inputmode="decimal" autocomplete="off"></label>
+      </div>`;
+    el.appendChild(d);
+  });
+  el.querySelectorAll("input[data-tok]").forEach(inp=>{
+    const i=+inp.dataset.tok,f=inp.dataset.field;
+    inp.value=(DATA.tokens[i][f]!=null)?DATA.tokens[i][f]:"";
+    inp.addEventListener("input",()=>{DATA.tokens[i][f]=inp.value;renderTokens();save();});
+  });
+}
+
+/* ---- emoji picker ---- */
+const PRESETS=["👻","🐼","🚀","💎","🔥","😎","👽","🤑","🌙","⚡","🦊","🐸","🐵","🤖","🎃","🌈","😀","🥳"];
+(function buildGrid(){
+  const g=document.getElementById("emojiGrid");
+  PRESETS.forEach(e=>{
+    const b=document.createElement("button");b.type="button";b.textContent=e;
+    b.addEventListener("click",()=>{setEmoji(e);closeVeil("emoji");});
+    g.appendChild(b);
+  });
+})();
+function firstEmoji(str){
+  str=(str||"").trim();if(!str)return "";
+  try{if(typeof Intl!=="undefined"&&Intl.Segmenter){const seg=new Intl.Segmenter();for(const s of seg.segment(str))return s.segment;}}catch(e){}
+  return Array.from(str)[0]||str;
+}
+function setEmoji(e){const v=firstEmoji(e);if(!v)return;DATA.emoji=v;applyIdentity();save();}
+const emojiInput=document.getElementById("emojiInput");
+emojiInput.addEventListener("input",()=>{const v=firstEmoji(emojiInput.value);if(v){DATA.emoji=v;applyIdentity();save();}});
+function openEmoji(){emojiInput.value="";openVeil("emoji");setTimeout(()=>emojiInput.focus(),200);}
+document.getElementById("editEmoji").addEventListener("click",openEmoji);
+document.getElementById("emojiChip").addEventListener("click",openEmoji);
 
 /* tab router */
 function showView(name){
@@ -789,17 +939,16 @@ function showView(name){
     r.style.animation="none";void r.offsetWidth;r.style.animation="";r.style.animationDelay=(i*55)+"ms";
   });
   if(name==="home")animateBalance();
-  bindEdits();
 }
 document.querySelectorAll(".pill").forEach(p=>{
-  p.addEventListener("click",()=>{if(!editing())showView(p.dataset.view);});
+  p.addEventListener("click",()=>showView(p.dataset.view));
 });
 document.querySelectorAll(".chip2").forEach(c=>{
-  c.addEventListener("click",()=>{if(editing())return;document.querySelectorAll(".chip2").forEach(x=>x.classList.remove("on"));c.classList.add("on");});
+  c.addEventListener("click",()=>{document.querySelectorAll(".chip2").forEach(x=>x.classList.remove("on"));c.classList.add("on");});
 });
 
 function renderAll(){renderTokens();renderPerps();renderPredictions();renderMarkets();renderTrending();}
-renderAll();restoreScalars();syncIdentity();bindEdits();
+renderAll();applyIdentity();applyCurrency();applyBalance();
 if(document.visibilityState==="visible")animateBalance();
 else document.addEventListener("visibilitychange",function h(){if(document.visibilityState==="visible"){animateBalance();document.removeEventListener("visibilitychange",h);}});
 </script>
