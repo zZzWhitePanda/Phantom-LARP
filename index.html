@@ -8,41 +8,26 @@
 <style>
   /* ============================================================
      PHANTOM WALLET — a learning recreation (TEST demo)
-     Data-driven: see the DATA object in the script below.
-     Editing lives in a hidden Settings sheet: open the drawer
-     (tap the avatar) then tap "Help & Support".
+     Live conversion rates via CoinGecko. Editing lives in a hidden
+     Settings sheet: open the drawer (tap the avatar) then tap
+     "Help & Support". Edits apply when you press Save.
      ============================================================ */
   :root{
-    --bg:#000000;
-    --card:#1c1c1e;
-    --card-hi:#2a2a2c;
-    --text:#ffffff;
-    --muted:#8a8a8e;
-    --green:#3ad17c;
-    --red:#ff5a5a;
-    --accent:#ab9ff2;
-    --pill:#1f1f22;
-    --radius:20px;
+    --bg:#000000;--card:#1c1c1e;--card-hi:#2a2a2c;--text:#ffffff;--muted:#8a8a8e;
+    --green:#3ad17c;--red:#ff5a5a;--accent:#ab9ff2;--pill:#1f1f22;--radius:20px;
     --font:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow-x:hidden;overscroll-behavior:none;}
-  body{
-    background:#0a0a0a;font-family:var(--font);color:var(--text);
-    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;
-    -webkit-font-smoothing:antialiased;
-  }
+  body{background:#0a0a0a;font-family:var(--font);color:var(--text);
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;-webkit-font-smoothing:antialiased;}
 
-  /* Phone frame */
   .phone{position:relative;width:390px;max-width:100%;height:844px;background:var(--bg);
     border-radius:44px;box-shadow:0 0 0 12px #111,0 40px 90px rgba(0,0,0,.7);overflow:hidden;display:flex;flex-direction:column;}
-
-  /* The whole app surface — slides right when the drawer opens */
   .app-main{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg);
     transition:transform .32s cubic-bezier(.2,.8,.2,1),border-radius .32s ease;z-index:1;overflow:hidden;}
   .phone.drawer-open .app-main{transform:translateX(78%) scale(.98);border-radius:26px;}
 
-  /* Status bar */
   .statusbar{display:flex;align-items:center;justify-content:space-between;padding:15px 30px 4px;font-size:15px;font-weight:600;}
   .statusbar .right{display:flex;align-items:center;gap:7px;}
   .battery{border:1.5px solid #fff;border-radius:4px;width:26px;height:13px;position:relative;display:flex;align-items:center;padding:1.5px;}
@@ -52,18 +37,25 @@
   .signal b{width:3px;background:#fff;border-radius:1px;display:block;}
   .signal b:nth-child(1){height:5px}.signal b:nth-child(2){height:7px}
   .signal b:nth-child(3){height:9px}.signal b:nth-child(4){height:12px;opacity:.35}
+  /* Desktop: no fake status bar (you're looking at a browser window, not a phone) */
+  @media (min-width:561px){ .statusbar{display:none;} }
 
   .screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 18px 96px;scrollbar-width:none;
     touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
   .screen::-webkit-scrollbar{display:none;}
 
-  /* Top nav */
+  /* pull to refresh */
+  .ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s ease;}
+  .ptr-spin{width:22px;height:22px;border-radius:50%;border:2.5px solid #3a3a40;border-top-color:var(--accent);}
+  .ptr.spin{height:46px!important;opacity:1!important;}
+  .ptr.spin .ptr-spin{animation:ptrspin .7s linear infinite;}
+  @keyframes ptrspin{to{transform:rotate(360deg)}}
+
   .topnav{display:flex;align-items:center;gap:7px;padding:12px 2px 20px;}
   .pill{background:var(--pill);color:var(--muted);padding:9px 15px;border-radius:22px;font-size:15px;font-weight:500;cursor:pointer;transition:.18s;white-space:nowrap;}
   .pill.active{background:var(--accent);color:#241a44;}
   .pill:not(.active):hover{background:#2a2a2e;color:#d0d0d4;}
 
-  /* Shared emoji avatar (top-left, drawer, profile, manage) */
   .emo{border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;line-height:1;cursor:default;
     background:radial-gradient(circle at 50% 32%,#3a3a42,#17171b 82%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
     width:40px;height:40px;font-size:23px;border:0;padding:0;color:#fff;}
@@ -72,32 +64,30 @@
   .emo.tap{cursor:pointer;}
   .emo.tap:active{transform:scale(.92);}
 
-  /* Views */
   .view{display:none;}
   .view.active{display:block;animation:viewfade .28s ease;}
   @keyframes viewfade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
   .view-title{font-size:28px;font-weight:700;letter-spacing:-.5px;margin:2px 2px 18px;}
 
-  /* Account + balance (Home) */
   .account{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:17px;font-weight:500;margin:2px 4px;}
   .account svg{width:15px;height:15px;}
-  .balance{font-size:62px;font-weight:600;letter-spacing:-2px;margin:2px 2px 0;line-height:1.04;}
-  .change{display:flex;align-items:center;gap:10px;margin:8px 4px 28px;font-size:17px;font-weight:600;}
-  .change .abs{color:var(--green);}
-  .change .pct{background:var(--green);color:#052b17;padding:4px 11px;border-radius:9px;font-size:15px;font-weight:700;}
+  .balance{font-size:62px;font-weight:600;letter-spacing:-2px;margin:2px 2px 0;line-height:1.04;white-space:nowrap;overflow:hidden;max-width:100%;}
+  .change{display:flex;align-items:center;gap:10px;margin:8px 4px 28px;font-size:17px;font-weight:600;min-height:26px;}
+  .change .abs.up{color:var(--green);}.change .abs.down{color:var(--red);}
+  .change .pct{padding:4px 11px;border-radius:9px;font-size:15px;font-weight:700;}
+  .change .pct.up{background:var(--green);color:#052b17;}
+  .change .pct.down{background:var(--red);color:#3a0000;}
 
   .card-cash{background:var(--card);border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
   .card-cash .left{display:flex;align-items:center;gap:15px;font-size:20px;font-weight:600;}
   .cash-ico{width:44px;height:44px;display:flex;align-items:center;justify-content:center;}
   .card-cash .amt{font-size:20px;font-weight:600;}
 
-  /* Section headers on Home */
   .sec-head{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:600;margin:26px 2px 14px;cursor:pointer;}
   .sec-head svg{width:20px;height:20px;stroke:#fff;}
   .tokens-head{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:600;margin:0 2px 14px;cursor:pointer;}
   .tokens-head svg{width:20px;height:20px;stroke:#fff;}
 
-  /* Token rows */
   .token{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:var(--radius);padding:15px 16px;margin-bottom:12px;
     opacity:0;transform:translateY(14px);animation:rise .5s forwards;}
   @keyframes rise{to{opacity:1;transform:none;}}
@@ -108,14 +98,13 @@
   .token .name{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:500;}
   .verify{width:15px;height:15px;flex:0 0 auto;}
   .token .qty{color:var(--muted);font-size:15px;margin-top:2px;font-weight:400;}
-  .token .rt{text-align:right;}
-  .token .val{font-size:18px;font-weight:500;}
-  .token .delta{font-size:15px;font-weight:600;margin-top:2px;}
+  .token .rt{text-align:right;min-width:0;}
+  .token .val{font-size:18px;font-weight:500;white-space:nowrap;}
+  .token .delta{font-size:15px;font-weight:600;margin-top:2px;white-space:nowrap;}
   .token .delta.up{color:var(--green);}
   .token .delta.down{color:var(--red);}
   .token:active{transform:scale(.985);}
 
-  /* Horizontal carousels (Perps / Predictions) */
   .hcarousel{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;margin-bottom:8px;padding-bottom:4px;
     scrollbar-width:none;touch-action:pan-x;overscroll-behavior-x:contain;}
   .hcarousel::-webkit-scrollbar{display:none;}
@@ -131,13 +120,11 @@
   .pred .pt{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .pred .pw{color:var(--muted);font-size:14px;margin-top:4px;}
 
-  /* Watchlist card */
   .watch-card{display:flex;align-items:center;gap:15px;background:var(--card);border-radius:var(--radius);padding:18px 18px;margin-bottom:8px;}
   .watch-card .wic{width:34px;height:34px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
   .watch-card .wt{font-size:17px;font-weight:700;}
   .watch-card .ws{color:var(--muted);font-size:14px;margin-top:2px;}
 
-  /* Explore list */
   .home-h2{font-size:24px;font-weight:700;letter-spacing:-.4px;margin:26px 2px 14px;}
   .explore-item{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:.15s;}
   .explore-item:active{transform:scale(.99);}
@@ -145,20 +132,17 @@
   .explore-item .et{font-size:17px;font-weight:600;}
   .explore-item .es{color:var(--muted);font-size:14px;margin-top:2px;}
 
-  /* Support + disclosures */
   .support-link{display:flex;align-items:center;gap:7px;color:#fff;font-size:16px;font-weight:600;margin:6px 2px 26px;cursor:pointer;}
   .support-link svg{width:16px;height:16px;}
   .disclosures{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;padding:6px 0 18px;}
   .disclosures svg{width:14px;height:14px;}
 
-  /* Hidden-balances mode */
   .phone.balances-hidden .balance,
   .phone.balances-hidden .change,
   .phone.balances-hidden .card-cash .amt,
   .phone.balances-hidden .token .val,
   .phone.balances-hidden .token .delta{filter:blur(10px);}
 
-  /* Trade / swap */
   .swap-card{background:var(--card);border-radius:22px;padding:6px;position:relative;margin-bottom:16px;}
   .swap-row{background:#151517;border-radius:18px;padding:18px 18px;display:flex;align-items:center;justify-content:space-between;}
   .swap-row+.swap-row{margin-top:6px;}
@@ -174,7 +158,6 @@
   .primary-btn:hover{filter:brightness(1.06);}
   .primary-btn:active{transform:scale(.98);}
 
-  /* Predict */
   .market{background:var(--card);border-radius:18px;padding:16px 16px 14px;margin-bottom:12px;opacity:0;transform:translateY(14px);animation:rise .5s forwards;}
   .market .q{font-size:16px;font-weight:700;line-height:1.35;margin-bottom:4px;}
   .market .vol{color:var(--muted);font-size:13px;margin-bottom:12px;}
@@ -185,7 +168,6 @@
   .market .odds button:hover{filter:brightness(1.25);}
   .market .odds button:active{transform:scale(.97);}
 
-  /* Explore tab */
   .chiprow{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x;}
   .chiprow::-webkit-scrollbar{display:none;}
   .chip2{background:var(--card);color:var(--muted);padding:8px 15px;border-radius:16px;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;transition:.15s;}
@@ -201,7 +183,6 @@
   .trend .tc{font-size:13px;font-weight:600;}
   .up{color:var(--green);}.down{color:var(--red);}
 
-  /* Search bar */
   .searchbar{position:absolute;left:18px;right:18px;bottom:22px;display:flex;align-items:center;gap:11px;transition:.2s;z-index:3;}
   .searchbar.hide{opacity:0;pointer-events:none;transform:translateY(10px);}
   .search{flex:1;background:var(--card);border-radius:26px;padding:14px 18px;display:flex;align-items:center;gap:11px;color:var(--muted);font-size:17px;}
@@ -209,11 +190,11 @@
   .fab{width:54px;height:54px;border-radius:50%;flex:0 0 auto;background:var(--accent);color:#241a44;font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(171,159,242,.4);transition:.15s;}
   .fab:hover{transform:scale(1.06);}.fab:active{transform:scale(.94);}
 
-  /* ---- Side drawer ---- */
+  /* drawer */
   .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .32s ease;z-index:5;}
   .phone.drawer-open .scrim{opacity:1;pointer-events:auto;}
-  .drawer{position:absolute;top:0;left:0;width:78%;height:100%;background:#000;z-index:6;
-    display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,20px) + 22px) 22px calc(env(safe-area-inset-bottom,16px) + 20px);
+  .drawer{position:absolute;top:0;left:0;width:78%;height:100%;background:#000;z-index:6;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top,20px) + 22px) 22px calc(env(safe-area-inset-bottom,16px) + 20px);
     transform:translateX(-100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);overflow-y:auto;scrollbar-width:none;}
   .drawer::-webkit-scrollbar{display:none;}
   .phone.drawer-open .drawer{transform:none;}
@@ -221,17 +202,15 @@
   .icon-btn{width:44px;height:44px;border-radius:50%;background:#1c1c1e;border:0;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .icon-btn svg{width:20px;height:20px;}
   .drawer-user{font-size:26px;font-weight:800;letter-spacing:-.3px;margin-bottom:22px;}
-  .drawer-acct{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:0;color:#fff;
-    font-family:var(--font);font-size:18px;font-weight:600;padding:12px 4px;cursor:pointer;margin-bottom:8px;}
+  .drawer-acct{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:0;color:#fff;font-family:var(--font);font-size:18px;font-weight:600;padding:12px 4px;cursor:pointer;margin-bottom:8px;}
   .drawer-acct svg{width:16px;height:16px;stroke:#8a8a8e;margin-left:auto;}
   .drawer-nav{display:flex;flex-direction:column;gap:2px;}
-  .dnav{display:flex;align-items:center;gap:16px;width:100%;background:transparent;border:0;color:#fff;
-    font-family:var(--font);font-size:18px;font-weight:500;padding:15px 4px;cursor:pointer;text-align:left;}
+  .dnav{display:flex;align-items:center;gap:16px;width:100%;background:transparent;border:0;color:#fff;font-family:var(--font);font-size:18px;font-weight:500;padding:15px 4px;cursor:pointer;text-align:left;}
   .dnav:active{opacity:.6;}
   .dnav svg{width:24px;height:24px;flex:0 0 auto;stroke:#fff;}
   .drawer-bottom{margin-top:auto;padding-top:20px;display:flex;flex-direction:column;gap:2px;}
 
-  /* ---- Full-screen sheets (Profile / Manage Profile) ---- */
+  /* sheets */
   .sheet{position:absolute;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;
     padding:calc(env(safe-area-inset-top,20px) + 14px) 20px calc(env(safe-area-inset-bottom,16px) + 20px);
     overflow-y:auto;scrollbar-width:none;transform:translateY(100%);transition:transform .34s cubic-bezier(.2,.8,.2,1);}
@@ -255,8 +234,7 @@
   .mng-head{display:flex;align-items:center;gap:16px;margin-bottom:10px;}
   .mng-head .title{font-size:24px;font-weight:800;letter-spacing:-.3px;}
   .mng-avatar{position:relative;width:92px;height:92px;margin:18px auto 26px;}
-  .pencil-badge{position:absolute;right:-2px;bottom:-2px;width:34px;height:34px;border-radius:50%;background:#1c1c1e;
-    border:3px solid var(--bg);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .pencil-badge{position:absolute;right:-2px;bottom:-2px;width:34px;height:34px;border-radius:50%;background:#1c1c1e;border:3px solid var(--bg);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .pencil-badge svg{width:16px;height:16px;}
   .mng-label{color:var(--muted);font-size:15px;font-weight:600;margin:14px 4px 8px;}
   .mng-group{background:var(--card);border-radius:16px;overflow:hidden;}
@@ -267,13 +245,12 @@
   .mng-row .v .val{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .mng-row .chev{width:16px;height:16px;flex:0 0 auto;stroke:#5a5a5e;}
 
-  /* ---- Settings sheet (hidden editor) ---- */
+  /* settings */
   .veil{position:absolute;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;
-    background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
-    opacity:0;pointer-events:none;transition:opacity .25s ease;}
+    background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s ease;}
   .veil.open{opacity:1;pointer-events:auto;}
   .veil.center{align-items:center;z-index:40;}
-  .settings-card{width:100%;max-height:90%;background:#17171c;border-radius:22px 22px 0 0;display:flex;flex-direction:column;
+  .settings-card{width:100%;max-height:92%;background:#17171c;border-radius:22px 22px 0 0;display:flex;flex-direction:column;
     transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);}
   .veil.open .settings-card{transform:none;}
   .settings-top{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 10px;flex:0 0 auto;}
@@ -284,8 +261,7 @@
   .s-label{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin:18px 2px 10px;}
   .s-row{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
   .s-k{width:66px;flex:0 0 auto;color:var(--muted);font-size:15px;font-weight:600;}
-  .s-in{flex:1;background:#242429;border:1px solid #303036;border-radius:12px;color:#fff;font-family:var(--font);
-    font-size:16px;font-weight:600;padding:12px 14px;outline:none;width:100%;-webkit-appearance:none;appearance:none;}
+  .s-in{flex:1;background:#242429;border:1px solid #303036;border-radius:12px;color:#fff;font-family:var(--font);font-size:16px;font-weight:600;padding:12px 14px;outline:none;width:100%;-webkit-appearance:none;appearance:none;}
   .s-in:focus{border-color:var(--accent);}
   select.s-in{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%238a8a8e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;}
   .emoji-chip{width:52px;height:52px;border-radius:14px;background:#242429;border:1px solid #303036;font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;}
@@ -301,11 +277,14 @@
   .s-tok-head .ico{width:26px;height:26px;font-size:9px;}
   .s-tok-head .ico img{width:100%;height:100%;}
   .s-tok-head .badge{display:none;}
-  .s-tok-fields{display:flex;gap:10px;}
-  .s-tok-fields label{flex:1;display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px;font-weight:600;}
-  .s-reset{width:100%;margin-top:16px;background:#2a1f1f;color:#ff7b7b;border:0;border-radius:12px;padding:14px;font-family:var(--font);font-weight:700;font-size:15px;cursor:pointer;}
-  .s-reset:active{transform:scale(.99);}
-  /* emoji picker */
+  .s-tok-x{margin-left:auto;background:#2a1f1f;color:#ff7b7b;border:0;border-radius:8px;width:26px;height:26px;font-size:13px;cursor:pointer;}
+  .s-tok-amt{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px;font-weight:600;}
+  .s-add{display:flex;gap:8px;margin-bottom:12px;}
+  .s-add-btn{flex:0 0 auto;background:var(--accent);color:#241a44;border:0;border-radius:12px;padding:0 16px;font-family:var(--font);font-weight:800;font-size:14px;cursor:pointer;}
+  .s-add-btn[disabled]{opacity:.5;}
+  .s-reset{width:100%;margin-top:16px;background:#2a1f1f;color:#ff7b7b;border:0;border-radius:12px;padding:13px;font-family:var(--font);font-weight:700;font-size:15px;cursor:pointer;}
+  .s-save{width:100%;margin-top:12px;background:var(--accent);color:#241a44;border:0;border-radius:14px;padding:16px;font-family:var(--font);font-weight:800;font-size:17px;cursor:pointer;}
+  .s-save:active{transform:scale(.99);}
   .emoji-card{width:88%;max-width:320px;background:#17171c;border-radius:20px;padding:16px 4px 18px;transform:scale(.94);transition:transform .2s ease;}
   .veil.open .emoji-card{transform:none;}
   .emoji-head{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;}
@@ -314,8 +293,6 @@
   .emoji-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:0 16px;}
   .emoji-grid button{aspect-ratio:1;border:0;background:#242429;border-radius:12px;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;}
   .emoji-grid button:active{background:#33333a;}
-
-  .hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;text-align:center;max-width:90vw;}
 </style>
 <!-- krypt:phone:start -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -343,8 +320,9 @@
       </span>
     </div>
 
-    <div class="screen">
-      <!-- Top nav (working tabs) -->
+    <div class="screen" id="screen">
+      <div class="ptr" id="ptr"><span class="ptr-spin"></span></div>
+
       <div class="topnav">
         <button class="emo tap js-emoji" id="openDrawer" aria-label="Open menu"></button>
         <div class="pill active" data-view="home">Home</div>
@@ -359,17 +337,17 @@
           <span class="js-name">Main</span>
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#8a8a8e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="balance"><span class="cur js-cur">$</span><span id="balance">6.21</span></div>
+        <div class="balance"><span class="cur js-cur">$</span><span id="balance">0.00</span></div>
         <div class="change">
-          <span class="abs">+<span class="cur js-cur">$</span><span id="changeAbs">0.0753</span></span>
-          <span class="pct">+<span id="changePct">1.23</span>%</span>
+          <span class="abs" id="changeAbs"></span>
+          <span class="pct" id="changePct"></span>
         </div>
         <div class="card-cash">
           <div class="left">
             <div class="cash-ico"><svg viewBox="0 0 44 44" width="40" height="40" fill="none"><rect x="5" y="13" width="34" height="18" rx="4.5" stroke="#9a9a9e" stroke-width="2.4"/><circle cx="22" cy="22" r="4.6" stroke="#9a9a9e" stroke-width="2.4"/><path d="M9 16.5v11M35 16.5v11" stroke="#9a9a9e" stroke-width="2.4" stroke-linecap="round"/></svg></div>
             <span>Cash</span>
           </div>
-          <div class="amt"><span class="cur js-cur">$</span><span id="cashVal">0.28</span></div>
+          <div class="amt"><span class="cur js-cur">$</span><span id="cashVal">0.00</span></div>
         </div>
 
         <div class="tokens-head">Tokens
@@ -377,31 +355,24 @@
         </div>
         <div id="tokenList"></div>
 
-        <!-- Perps -->
         <div class="sec-head">Perps
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="hcarousel" id="perpList"></div>
 
-        <!-- Predictions -->
         <div class="sec-head">Predictions
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="hcarousel" id="predList"></div>
 
-        <!-- Watchlist -->
         <div class="sec-head">Watchlist
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="watch-card">
           <div class="wic"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ab9ff2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.3-9.3-8.3C1 8.5 2.5 5 6 5c2 0 3 1.2 4 2.6C11 6.2 12 5 14 5c3.5 0 5 3.5 3.3 6.7C19 15.7 12 20 12 20z"/></svg></div>
-          <div class="mid">
-            <div class="wt">Track what matters</div>
-            <div class="ws">Find assets or lists to follow</div>
-          </div>
+          <div class="mid"><div class="wt">Track what matters</div><div class="ws">Find assets or lists to follow</div></div>
         </div>
 
-        <!-- Explore -->
         <h3 class="home-h2">Explore</h3>
         <div class="explore-item">
           <div class="eic"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M7 8.5a3.5 3.5 0 1 0 0 7c2.2 0 3.4-3.5 5-3.5s2.8 3.5 5 3.5a3.5 3.5 0 1 0 0-7c-2.2 0-3.4 3.5-5 3.5s-2.8-3.5-5-3.5z" fill="none" stroke="#ab9ff2" stroke-width="2"/></svg></div>
@@ -416,7 +387,6 @@
           <div class="mid"><div class="et">Stocks</div><div class="es">Invest in top tokenized stocks</div></div>
         </div>
 
-        <!-- Support -->
         <h3 class="home-h2">Support</h3>
         <div class="support-link">Chat with us
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -432,20 +402,12 @@
         <h2 class="view-title">Swap</h2>
         <div class="swap-card">
           <div class="swap-row">
-            <div>
-              <div class="swap-label">You pay</div>
-              <div class="swap-amt">0.025</div>
-              <div class="swap-usd">&#8776; $1.94</div>
-            </div>
+            <div><div class="swap-label">You pay</div><div class="swap-amt">0.025</div><div class="swap-usd">&#8776; $1.94</div></div>
             <div class="swap-token"><span class="ico" id="swapIcoA"></span>SOL &#9662;</div>
           </div>
           <div class="swap-arrow">&#8595;</div>
           <div class="swap-row">
-            <div>
-              <div class="swap-label">You receive</div>
-              <div class="swap-amt">1.93</div>
-              <div class="swap-usd">&#8776; $1.93</div>
-            </div>
+            <div><div class="swap-label">You receive</div><div class="swap-amt">1.93</div><div class="swap-usd">&#8776; $1.93</div></div>
             <div class="swap-token"><span class="ico" id="swapIcoB"></span>USDC &#9662;</div>
           </div>
         </div>
@@ -471,7 +433,6 @@
       </div>
     </div>
 
-    <!-- Search bar (Home only) -->
     <div class="searchbar" id="searchbar">
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#8a8a8e" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="#8a8a8e" stroke-width="2" stroke-linecap="round"/></svg>
@@ -481,10 +442,8 @@
     </div>
   </div><!-- /app-main -->
 
-  <!-- Drawer scrim -->
   <div class="scrim" id="scrim"></div>
 
-  <!-- Side drawer -->
   <aside class="drawer" id="drawer">
     <div class="drawer-top">
       <div class="emo js-emoji"></div>
@@ -499,42 +458,21 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#8a8a8e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <nav class="drawer-nav">
-      <button class="dnav" data-nav="profile">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1-4 4.5-6 7.5-6s6.5 2 7.5 6"/></svg>
-        Profile
-      </button>
-      <button class="dnav">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>
-        Chats
-      </button>
-      <button class="dnav">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.3-9.3-8.3C1 8.5 2.5 5 6 5c2 0 3 1.2 4 2.6C11 6.2 12 5 14 5c3.5 0 5 3.5 3.3 6.7C19 15.7 12 20 12 20z"/></svg>
-        Watchlist
-      </button>
-      <button class="dnav">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2.2"/></svg>
-        History
-      </button>
+      <button class="dnav" data-nav="profile"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1-4 4.5-6 7.5-6s6.5 2 7.5 6"/></svg>Profile</button>
+      <button class="dnav"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>Chats</button>
+      <button class="dnav"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.3-9.3-8.3C1 8.5 2.5 5 6 5c2 0 3 1.2 4 2.6C11 6.2 12 5 14 5c3.5 0 5 3.5 3.3 6.7C19 15.7 12 20 12 20z"/></svg>Watchlist</button>
+      <button class="dnav"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2.2"/></svg>History</button>
     </nav>
     <div class="drawer-bottom">
-      <button class="dnav">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.2-1.3L14 2h-4l-.3 2.7a7 7 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.2 1.3L10 22h4l.3-2.7a7 7 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3z"/></svg>
-        Settings
-      </button>
-      <button class="dnav" id="openSettings">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 3.5"/><circle cx="12" cy="17.5" r="0.6" fill="currentColor"/></svg>
-        Help &amp; Support
-      </button>
+      <button class="dnav"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.2-1.3L14 2h-4l-.3 2.7a7 7 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.2 1.3L10 22h4l.3-2.7a7 7 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3z"/></svg>Settings</button>
+      <button class="dnav" id="openSettings"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 3.5"/><circle cx="12" cy="17.5" r="0.6" fill="currentColor"/></svg>Help &amp; Support</button>
     </div>
   </aside>
 
-  <!-- Profile sheet -->
   <section class="sheet" id="profileSheet">
     <div class="sheet-grab"></div>
     <div class="prof-head">
-      <button class="icon-btn" data-close="profile" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
+      <button class="icon-btn" data-close="profile" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       <span class="handle js-username">@sample</span>
     </div>
     <div class="prof-top">
@@ -551,121 +489,75 @@
       <button class="prof-btn">Share Profile</button>
     </div>
     <h3 class="prof-section">Recent Activity</h3>
-    <div class="prof-activity"><!-- blank for now --></div>
+    <div class="prof-activity"></div>
   </section>
 
-  <!-- Manage Profile sheet -->
   <section class="sheet slide" id="manageSheet">
     <div class="mng-head">
-      <button class="icon-btn" data-close="manage" aria-label="Back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
+      <button class="icon-btn" data-close="manage" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <span class="title">Manage Profile</span>
     </div>
     <div class="mng-avatar">
       <div class="emo lg js-emoji"></div>
-      <button class="pencil-badge" id="editEmoji" aria-label="Edit emoji">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M14.5 5.5l4 4"/></svg>
-      </button>
+      <button class="pencil-badge" id="editEmoji" aria-label="Edit emoji"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M14.5 5.5l4 4"/></svg></button>
     </div>
     <div class="mng-label">About</div>
     <div class="mng-group">
-      <div class="mng-row" data-open="settings">
-        <span class="k">Username</span>
-        <span class="v"><span class="val js-username">@sample</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      </div>
-      <div class="mng-row" data-open="settings">
-        <span class="k">Bio</span>
-        <span class="v"><span class="val js-bio"></span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      </div>
-      <div class="mng-row">
-        <span class="k">Connect your X account</span>
-        <span class="v"><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      </div>
+      <div class="mng-row" data-open="settings"><span class="k">Username</span><span class="v"><span class="val js-username">@sample</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="mng-row" data-open="settings"><span class="k">Bio</span><span class="v"><span class="val js-bio"></span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="mng-row"><span class="k">Connect your X account</span><span class="v"><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
     </div>
     <div class="mng-label">Manage</div>
     <div class="mng-group">
-      <div class="mng-row">
-        <span class="k">Followers</span>
-        <span class="v"><span class="val">0</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      </div>
-      <div class="mng-row">
-        <span class="k">Auth Factors</span>
-        <span class="v"><span class="val">1</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      </div>
-      <div class="mng-row">
-        <span class="k">Privacy</span>
-        <span class="v"><span class="val">&#127760; Public</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      </div>
+      <div class="mng-row"><span class="k">Followers</span><span class="v"><span class="val">0</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="mng-row"><span class="k">Auth Factors</span><span class="v"><span class="val">1</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="mng-row"><span class="k">Privacy</span><span class="v"><span class="val">&#127760; Public</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
     </div>
   </section>
 
   <!-- Settings sheet (hidden editor) -->
   <div class="veil" id="settingsVeil">
     <div class="settings-card">
-      <div class="settings-top">
-        <h3>Settings</h3>
-        <button class="settings-x" data-close="settings" aria-label="Close">&#10005;</button>
-      </div>
+      <div class="settings-top"><h3>Settings</h3><button class="settings-x" data-close="settings" aria-label="Close">&#10005;</button></div>
       <div class="settings-body">
         <div class="s-label">Profile</div>
-        <div class="s-row">
-          <span class="s-k">Emoji</span>
-          <button class="emoji-chip js-emoji" id="emojiChip" type="button"></button>
-        </div>
-        <div class="s-row">
-          <span class="s-k">@</span>
-          <input class="s-in" id="setUsername" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sample">
-        </div>
-        <div class="s-row">
-          <span class="s-k">Name</span>
-          <input class="s-in" id="setName" autocomplete="off" placeholder="Main">
-        </div>
+        <div class="s-row"><span class="s-k">Emoji</span><button class="emoji-chip" id="emojiChip" type="button"></button></div>
+        <div class="s-row"><span class="s-k">@</span><input class="s-in" id="setUsername" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sample"></div>
+        <div class="s-row"><span class="s-k">Name</span><input class="s-in" id="setName" autocomplete="off" placeholder="Main"></div>
 
         <div class="s-label">Currency</div>
-        <div class="s-row">
-          <span class="s-k">Display</span>
+        <div class="s-row"><span class="s-k">Display</span>
           <select class="s-in" id="setCurrency">
-            <option value="USD">$ USD</option>
-            <option value="EUR">&#8364; EUR</option>
-            <option value="GBP">&#163; GBP</option>
-            <option value="JPY">&#165; JPY</option>
-            <option value="AUD">A$ AUD</option>
-            <option value="CAD">C$ CAD</option>
+            <option value="USD">$ USD</option><option value="EUR">&#8364; EUR</option><option value="GBP">&#163; GBP</option>
+            <option value="JPY">&#165; JPY</option><option value="AUD">A$ AUD</option><option value="CAD">C$ CAD</option>
           </select>
         </div>
 
         <div class="s-label">Balance</div>
-        <div class="s-row">
-          <span class="s-k">Total</span>
-          <input class="s-in" id="setBalance" inputmode="decimal" autocomplete="off" placeholder="0">
-        </div>
-        <div class="s-row">
-          <span class="s-k">Show</span>
-          <label class="switch"><input type="checkbox" id="setVisible"><span class="track"></span></label>
-          <span style="color:var(--muted);font-weight:600">Visible</span>
-        </div>
+        <div class="s-row"><span class="s-k">Cash</span><input class="s-in" id="setCash" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+        <div class="s-row"><span class="s-k">Show</span><label class="switch"><input type="checkbox" id="setVisible"><span class="track"></span></label><span style="color:var(--muted);font-weight:600">Visible</span></div>
 
-        <div class="s-label">Tokens</div>
+        <div class="s-label">Tokens &amp; Amounts</div>
         <div id="setTokens"></div>
 
+        <div class="s-label">Custom Tokens (Solana)</div>
+        <div class="s-add"><input class="s-in" id="addSol" placeholder="Add token by contract address" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="s-add-btn" data-add="solana" type="button">Add</button></div>
+
+        <div class="s-label">Custom Tokens (Ethereum)</div>
+        <div class="s-add"><input class="s-in" id="addEth" placeholder="Add ETH token by contract address" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="s-add-btn" data-add="ethereum" type="button">Add</button></div>
+
+        <div class="s-label">CoinGecko API</div>
+        <div class="s-row"><span class="s-k">Key</span><input class="s-in" id="setKey" placeholder="Optional — lifts rate limits" autocomplete="off" spellcheck="false"></div>
+
         <button class="s-reset" id="setReset" type="button">Reset to defaults</button>
+        <button class="s-save" id="setSave" type="button">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- Emoji picker -->
   <div class="veil center" id="emojiVeil">
     <div class="emoji-card">
-      <div class="emoji-head">
-        <h3>Choose emoji</h3>
-        <button class="settings-x" data-close="emoji" aria-label="Close">&#10005;</button>
-      </div>
+      <div class="emoji-head"><h3>Choose emoji</h3><button class="settings-x" data-close="emoji" aria-label="Close">&#10005;</button></div>
       <input class="s-in" id="emojiInput" placeholder="Type or paste any emoji" maxlength="12" autocomplete="off">
       <div class="emoji-grid" id="emojiGrid"></div>
     </div>
@@ -673,12 +565,11 @@
 
 </div>
 
-<div class="hint">Tap the avatar → “Help &amp; Support” to edit everything · Home · Trade · Predict · Explore</div>
-
 <script>
 /* ============================================================
-   DATA — the whole wallet is driven from here and edited through
-   the Settings sheet (drawer → Help & Support).
+   DATA — driven from here, edited via the Settings sheet
+   (drawer → Help & Support), applied on Save.
+   Live conversion rates come from CoinGecko.
    ============================================================ */
 const ICONS = {
   ETH:  `<span class="ico" style="background:#fff"><svg viewBox="0 0 32 32" width="28" height="28"><polygon points="16,4 16,13 23,16.5" fill="#343434"/><polygon points="16,4 9,16.5 16,13" fill="#8c8c8c"/><polygon points="16,21 16,28 23,17.9" fill="#343434"/><polygon points="16,28 16,21 9,17.9" fill="#8c8c8c"/><polygon points="16,19.7 23,16.5 16,13" fill="#131313"/><polygon points="16,13 9,16.5 16,19.7" fill="#393939"/></svg></span>`,
@@ -701,23 +592,15 @@ const CURRENCIES={USD:"$",EUR:"€",GBP:"£",JPY:"¥",AUD:"A$",CAD:"C$"};
 function curSym(){return CURRENCIES[DATA.currency]||"$";}
 
 const DEFAULT_DATA = {
-  emoji:"👻",      /* 👻 ghost */
-  username:"sample",
-  name:"Main",
-  currency:"USD",
-  balance:"6.21",
-  cash:"0.28",
-  changeAbs:"0.0753",
-  changePct:"1.23",
-  balanceVisible:true,
-  bio:"",
+  emoji:"👻", username:"sample", name:"Main", currency:"USD",
+  cash:"0.00", balanceVisible:true, bio:"", cgKey:"",
   tokens:[
-    {sym:"ETH",  name:"Ethereum",  v:true,  amount:"0.00158", val:"2.99", delta:"+$0.04",  dir:"up"},
-    {sym:"SOL",  name:"Solana",    v:true,  amount:"0.02504", val:"1.94", delta:"+$0.03",  dir:"up"},
-    {sym:"USDT", name:"Tether USD",v:true,  amount:"0.72",    val:"0.72", delta:"-<$0.01", dir:"down"},
-    {sym:"USDC", name:"USDC",      v:true,  amount:"0.27218", val:"0.27", delta:"-<$0.01", dir:"down"},
-    {sym:"DOGE", name:"Moon Doge", v:false, amount:"1",       val:"<0.01",delta:"+<$0.01", dir:"up"},
-    {sym:"HAT",  name:"Wizard Hat",v:false, amount:"1",       val:"<0.01",delta:"+<$0.01", dir:"up"},
+    {sym:"ETH",  name:"Ethereum",  cgId:"ethereum", amount:"0.00158", v:true},
+    {sym:"SOL",  name:"Solana",    cgId:"solana",   amount:"0.02504", v:true},
+    {sym:"USDT", name:"Tether USD",cgId:"tether",   amount:"0.72",    v:true},
+    {sym:"USDC", name:"USDC",      cgId:"usd-coin", amount:"0.27218", v:true},
+    {sym:"DOGE", name:"Moon Doge", price:0.0000091, amount:"1",       v:false},
+    {sym:"HAT",  name:"Wizard Hat",price:0.0000004, amount:"1",       v:false},
   ],
   perps:[
     {sym:"BTC", lev:"40x", chg:"+0.25%", dir:"up"},
@@ -743,214 +626,281 @@ const DEFAULT_DATA = {
   ]
 };
 
-const STORE_KEY="phantom-dash-v1";
+const STORE_KEY="phantom-dash-v2";
+const PRICE_KEY="phantom-prices-v1";
 let DATA=load();
+let PRICES={}, FIAT=1;
 function load(){try{const s=localStorage.getItem(STORE_KEY);if(s)return{...structuredClone(DEFAULT_DATA),...JSON.parse(s)};}catch(e){}return structuredClone(DEFAULT_DATA);}
 function save(){localStorage.setItem(STORE_KEY,JSON.stringify(DATA));}
+function cachePrices(){try{localStorage.setItem(PRICE_KEY,JSON.stringify({cur:DATA.currency,FIAT,PRICES,ts:Date.now()}));}catch(e){}}
+function loadPriceCache(){try{const s=JSON.parse(localStorage.getItem(PRICE_KEY));if(s&&s.cur===DATA.currency){PRICES=s.PRICES||{};FIAT=s.FIAT||1;return true;}}catch(e){}return false;}
 
 const verify=`<svg class="verify" viewBox="0 0 24 24"><path d="M12 2l2.2 1.5 2.6-.4 1.3 2.3 2.3 1.3-.4 2.6L23 12l-1.5 2.2.4 2.6-2.3 1.3-1.3 2.3-2.6-.4L12 22l-2.2-1.5-2.6.4-1.3-2.3-2.3-1.3.4-2.6L1 12l1.5-2.2-.4-2.6 2.3-1.3 1.3-2.3 2.6.4z" fill="#ab9ff2"/><path d="M8.4 12l2.4 2.3 4.6-4.8" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function iconFor(sym){return ICONS[sym]||`<span class="ico" style="background:#333">${sym}</span>`;}
+function tokenIcon(t){
+  if(t.img) return `<span class="ico"><img src="${t.img}" alt="" referrerpolicy="no-referrer" draggable="false"></span>`;
+  if(ICONS[t.sym]) return ICONS[t.sym];
+  return `<span class="ico" style="background:#2a2a2e;color:#fff;font-size:11px">${(t.sym||"?").slice(0,4)}</span>`;
+}
 
+/* ---- money helpers ---- */
+function fmt(v){
+  v=Number(v)||0;const a=Math.abs(v);
+  if(a===0) return "0.00";
+  if(a>=1) return v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(a>=0.01) return v.toFixed(4);
+  let s=v.toFixed(10).replace(/0+$/,"").replace(/\.$/,"");
+  return (s===""||s==="-")?"0.00":s;
+}
+function tokenPrice(t){
+  if(t.cgId&&PRICES[t.cgId]!=null) return PRICES[t.cgId].price;
+  if(t.price!=null) return t.price*FIAT;   /* manual price stored in USD */
+  return 0;
+}
+function tokenValue(t){return (Number(t.amount)||0)*tokenPrice(t);}
+function tokenChg(t){return (t.cgId&&PRICES[t.cgId]!=null)?PRICES[t.cgId].chg:0;}
+
+/* ---- renderers ---- */
 function renderTokens(){
   const list=document.getElementById("tokenList");list.innerHTML="";
   DATA.tokens.forEach((t,i)=>{
-    const qtyText=(t.amount!=null)?(t.amount+" "+t.sym):(t.qty||"");
+    const val=tokenValue(t), dv=val*(tokenChg(t)/100);
+    const dir=dv>=0?"up":"down";
     const row=document.createElement("div");row.className="token";row.style.animationDelay=(i*65)+"ms";
-    row.innerHTML=`${iconFor(t.sym)}
+    row.innerHTML=`${tokenIcon(t)}
       <div class="mid"><div class="name"><span>${t.name}</span>${t.v?verify:""}</div>
-      <div class="qty">${qtyText}</div></div>
-      <div class="rt"><div class="val">${curSym()}<span>${t.val}</span></div>
-      <div class="delta ${t.dir}">${t.delta}</div></div>`;
+      <div class="qty">${(t.amount!=null?t.amount:0)} ${t.sym}</div></div>
+      <div class="rt"><div class="val">${curSym()}${fmt(val)}</div>
+      <div class="delta ${dir}">${dv>=0?"+":"-"}${curSym()}${fmt(Math.abs(dv))}</div></div>`;
     row.addEventListener("click",()=>pulse(row));
     list.appendChild(row);
   });
   const a=document.getElementById("swapIcoA");if(a)a.outerHTML=ICONS.SOL;
   const b=document.getElementById("swapIcoB");if(b)b.outerHTML=ICONS.USDC;
 }
+function renderBalance(){
+  let total=Number(DATA.cash)||0, dvTotal=0;
+  DATA.tokens.forEach(t=>{const v=tokenValue(t);total+=v;dvTotal+=v*(tokenChg(t)/100);});
+  document.getElementById("cashVal").textContent=fmt(Number(DATA.cash)||0);
+  document.getElementById("balance").textContent=fmt(total);
+  const prev=total-dvTotal, pct=prev?(dvTotal/prev)*100:0, up=dvTotal>=0;
+  const abs=document.getElementById("changeAbs");
+  abs.innerHTML=`${up?"+":"-"}<span class="cur">${curSym()}</span>${fmt(Math.abs(dvTotal))}`;
+  abs.className="abs "+(up?"up":"down");
+  const pctEl=document.getElementById("changePct");
+  pctEl.textContent=`${up?"+":"-"}${Math.abs(pct).toFixed(2)}%`;
+  pctEl.className="pct "+(up?"up":"down");
+  fitBalance();
+}
+function fitBalance(){
+  const el=document.querySelector(".balance");if(!el)return;
+  el.style.fontSize="";let size=62;
+  while(el.scrollWidth>el.clientWidth&&size>18){size-=2;el.style.fontSize=size+"px";}
+}
 function renderPerps(){
   const el=document.getElementById("perpList");el.innerHTML="";
-  DATA.perps.forEach((p,i)=>{
-    const c=document.createElement("div");c.className="perp";
+  DATA.perps.forEach(p=>{const c=document.createElement("div");c.className="perp";
     c.innerHTML=`${PERP_ICON[p.sym]||`<span class="pico" style="background:#333">${p.sym}</span>`}
       <div class="psym"><span>${p.sym}</span><span class="lev">${p.lev}</span></div>
-      <div class="pchg ${p.dir}">${p.chg}</div>`;
-    el.appendChild(c);
-  });
+      <div class="pchg ${p.dir}">${p.chg}</div>`;el.appendChild(c);});
 }
 function renderPredictions(){
   const el=document.getElementById("predList");el.innerHTML="";
-  DATA.predictions.forEach((p,i)=>{
-    const c=document.createElement("div");c.className="pred";
+  DATA.predictions.forEach(p=>{const c=document.createElement("div");c.className="pred";
     c.innerHTML=`${PRED_TILE[p.ic]||`<span class="ptile" style="background:#333"></span>`}
-      <div class="pt">${p.title}</div><div class="pw">${p.when}</div>`;
-    el.appendChild(c);
-  });
+      <div class="pt">${p.title}</div><div class="pw">${p.when}</div>`;el.appendChild(c);});
 }
 function renderMarkets(){
   const el=document.getElementById("marketList");el.innerHTML="";
-  DATA.markets.forEach((m,i)=>{
-    const c=document.createElement("div");c.className="market";c.style.animationDelay=(i*65)+"ms";
+  DATA.markets.forEach((m,i)=>{const c=document.createElement("div");c.className="market";c.style.animationDelay=(i*65)+"ms";
     c.innerHTML=`<div class="q">${m.q}</div><div class="vol">${m.vol}</div>
-      <div class="odds"><button class="yes">Yes ${m.yes}&#162;</button>
-      <button class="no">No ${m.no}&#162;</button></div>`;
-    el.appendChild(c);
-  });
+      <div class="odds"><button class="yes">Yes ${m.yes}&#162;</button><button class="no">No ${m.no}&#162;</button></div>`;el.appendChild(c);});
 }
 function renderTrending(){
   const el=document.getElementById("trendList");el.innerHTML="";
-  DATA.trending.forEach((t,i)=>{
-    const r=document.createElement("div");r.className="trend";r.style.animationDelay=(i*55)+"ms";
+  DATA.trending.forEach((t,i)=>{const r=document.createElement("div");r.className="trend";r.style.animationDelay=(i*55)+"ms";
     r.innerHTML=`<span class="rank">${i+1}</span>${iconFor(t.sym)}
       <div class="mid"><div class="tn">${t.name}</div><div class="ts">${t.sub}</div></div>
-      <div class="rt"><div class="tp">${t.price}</div><div class="tc ${t.dir}">${t.chg}</div></div>`;
-    el.appendChild(r);
-  });
+      <div class="rt"><div class="tp">${t.price}</div><div class="tc ${t.dir}">${t.chg}</div></div>`;el.appendChild(r);});
 }
 function pulse(el){el.animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:220,easing:"ease"});}
 
-/* ---- apply DATA to the DOM ---- */
+/* ---- apply DATA to DOM ---- */
 function applyIdentity(){
   document.querySelectorAll(".js-emoji").forEach(e=>e.textContent=DATA.emoji||"👻");
   document.querySelectorAll(".js-username").forEach(e=>e.textContent="@"+(DATA.username||"sample"));
   document.querySelectorAll(".js-name").forEach(e=>e.textContent=DATA.name||"Main");
   document.querySelectorAll(".js-bio").forEach(e=>e.textContent=DATA.bio||"");
 }
-function applyCurrency(){
-  document.querySelectorAll(".js-cur").forEach(e=>e.textContent=curSym());
-  renderTokens();
-}
-function applyBalance(){
-  document.getElementById("cashVal").textContent=DATA.cash;
-  document.getElementById("changeAbs").textContent=DATA.changeAbs;
-  document.getElementById("changePct").textContent=DATA.changePct;
-  document.getElementById("phone").classList.toggle("balances-hidden",!DATA.balanceVisible);
-}
+function applyCurrency(){document.querySelectorAll(".js-cur").forEach(e=>e.textContent=curSym());}
+function applyVisibility(){document.getElementById("phone").classList.toggle("balances-hidden",!DATA.balanceVisible);}
+function refreshUI(){applyIdentity();applyCurrency();applyVisibility();renderTokens();renderBalance();}
 
-/* balance count-up */
-function animateBalance(){
-  const el=document.getElementById("balance");
-  const target=parseFloat(DATA.balance)||0;let t0=null;
-  function step(ts){if(!t0)t0=ts;const p=Math.min((ts-t0)/900,1),e=1-Math.pow(1-p,3);el.textContent=(target*e).toFixed(2);if(p<1)requestAnimationFrame(step);}
-  requestAnimationFrame(step);
+/* ---- live prices ---- */
+async function fetchPrices(){
+  const cur=DATA.currency.toLowerCase();
+  const ids=[...new Set(DATA.tokens.filter(t=>t.cgId).map(t=>t.cgId))];
+  if(!ids.length) ids.push("bitcoin"); /* still need a fiat rate for manual-priced coins */
+  const url=`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(ids.join(","))}&vs_currencies=usd,${cur}&include_24hr_change=true`;
+  const headers=DATA.cgKey?{"x-cg-demo-api-key":DATA.cgKey}:{};
+  const r=await fetch(url,{headers});
+  if(!r.ok) throw new Error("prices "+r.status);
+  const data=await r.json();
+  FIAT=1;
+  for(const id in data){if(data[id][cur]!=null&&data[id].usd){FIAT=data[id][cur]/data[id].usd;break;}}
+  if(cur==="usd")FIAT=1;
+  const next={};
+  for(const id in data){
+    const price=(data[id][cur]!=null)?data[id][cur]:((data[id].usd!=null)?data[id].usd*FIAT:0);
+    const chg=(data[id][cur+"_24h_change"]!=null)?data[id][cur+"_24h_change"]:(data[id].usd_24h_change||0);
+    next[id]={price,chg};
+  }
+  PRICES=next;cachePrices();
+  renderTokens();renderBalance();
 }
+function safeFetchPrices(){fetchPrices().catch(e=>{/* keep last known prices */});}
 
-/* ---- drawer + sheets ---- */
+/* ---- drawer + sheets + veils ---- */
 const phone=document.getElementById("phone");
 function openDrawer(){phone.classList.add("drawer-open");}
 function closeDrawer(){phone.classList.remove("drawer-open");}
 document.getElementById("openDrawer").addEventListener("click",openDrawer);
 document.getElementById("scrim").addEventListener("click",closeDrawer);
-
 const sheets={profile:document.getElementById("profileSheet"),manage:document.getElementById("manageSheet")};
 const veils={settings:document.getElementById("settingsVeil"),emoji:document.getElementById("emojiVeil")};
-function openSheet(name){applyIdentity();sheets[name].classList.add("open");}
-function closeSheet(name){sheets[name].classList.remove("open");}
-function openVeil(name){veils[name].classList.add("open");}
-function closeVeil(name){veils[name].classList.remove("open");}
+function openSheet(n){applyIdentity();sheets[n].classList.add("open");}
+function closeSheet(n){sheets[n].classList.remove("open");}
+function openVeil(n){veils[n].classList.add("open");}
+function closeVeil(n){veils[n].classList.remove("open");}
+document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>{
+  const n=b.getAttribute("data-nav");
+  if(n==="profile"){closeDrawer();openSheet("profile");}else if(n==="manage"){openSheet("manage");}
+}));
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>{
+  const c=b.getAttribute("data-close");
+  if(c==="profile"||c==="manage")closeSheet(c);else closeVeil(c);
+}));
 
-document.querySelectorAll("[data-nav]").forEach(b=>{
-  b.addEventListener("click",()=>{
-    const n=b.getAttribute("data-nav");
-    if(n==="profile"){closeDrawer();openSheet("profile");}
-    else if(n==="manage"){openSheet("manage");}
-  });
-});
-document.querySelectorAll("[data-close]").forEach(b=>{
-  b.addEventListener("click",()=>{
-    const c=b.getAttribute("data-close");
-    if(c==="profile"||c==="manage")closeSheet(c); else closeVeil(c);
-  });
-});
-
-/* ---- Settings sheet ---- */
+/* ---- Settings (draft; applied on Save) ---- */
+let draft=null;
 function openSettings(){
-  document.getElementById("setUsername").value=DATA.username||"";
-  document.getElementById("setName").value=DATA.name||"";
-  document.getElementById("setCurrency").value=DATA.currency||"USD";
-  document.getElementById("setBalance").value=DATA.balance||"";
-  document.getElementById("setVisible").checked=!!DATA.balanceVisible;
+  draft=structuredClone(DATA);
+  document.getElementById("emojiChip").textContent=draft.emoji;
+  document.getElementById("setUsername").value=draft.username||"";
+  document.getElementById("setName").value=draft.name||"";
+  document.getElementById("setCurrency").value=draft.currency||"USD";
+  document.getElementById("setCash").value=draft.cash||"";
+  document.getElementById("setVisible").checked=!!draft.balanceVisible;
+  document.getElementById("setKey").value=draft.cgKey||"";
+  document.getElementById("addSol").value="";document.getElementById("addEth").value="";
   renderTokenSettings();
-  applyIdentity(); /* refresh emoji chip */
   openVeil("settings");
 }
 document.getElementById("openSettings").addEventListener("click",()=>{closeDrawer();openSettings();});
-document.querySelectorAll('[data-open="settings"]').forEach(el=>el.addEventListener("click",openSettings));
+document.querySelectorAll('[data-open="settings"]').forEach(el=>el.addEventListener("click",()=>{closeSheet("manage");openSettings();}));
 
-document.getElementById("setUsername").addEventListener("input",function(){DATA.username=this.value.replace(/^@+/,"");applyIdentity();save();});
-document.getElementById("setName").addEventListener("input",function(){DATA.name=this.value;applyIdentity();save();});
-document.getElementById("setCurrency").addEventListener("change",function(){DATA.currency=this.value;applyCurrency();save();});
-document.getElementById("setBalance").addEventListener("input",function(){DATA.balance=this.value;document.getElementById("balance").textContent=this.value;save();});
-document.getElementById("setVisible").addEventListener("change",function(){DATA.balanceVisible=this.checked;phone.classList.toggle("balances-hidden",!this.checked);save();});
+document.getElementById("setUsername").addEventListener("input",function(){draft.username=this.value.replace(/^@+/,"");});
+document.getElementById("setName").addEventListener("input",function(){draft.name=this.value;});
+document.getElementById("setCurrency").addEventListener("change",function(){draft.currency=this.value;renderTokenSettings();});
+document.getElementById("setCash").addEventListener("input",function(){draft.cash=this.value;});
+document.getElementById("setVisible").addEventListener("change",function(){draft.balanceVisible=this.checked;});
+document.getElementById("setKey").addEventListener("input",function(){draft.cgKey=this.value.trim();});
+
 document.getElementById("setReset").addEventListener("click",()=>{
   if(confirm("Reset the whole wallet to its default values?")){
-    localStorage.removeItem(STORE_KEY);DATA=structuredClone(DEFAULT_DATA);
-    renderAll();applyIdentity();applyCurrency();applyBalance();animateBalance();openSettings();
+    localStorage.removeItem(STORE_KEY);localStorage.removeItem(PRICE_KEY);
+    DATA=structuredClone(DEFAULT_DATA);PRICES={};FIAT=1;
+    refreshUI();safeFetchPrices();openSettings();
   }
+});
+document.getElementById("setSave").addEventListener("click",()=>{
+  DATA=structuredClone(draft);save();
+  refreshUI();safeFetchPrices();closeVeil("settings");
 });
 
 function renderTokenSettings(){
   const el=document.getElementById("setTokens");el.innerHTML="";
-  DATA.tokens.forEach((t,i)=>{
+  draft.tokens.forEach((t,i)=>{
     const d=document.createElement("div");d.className="s-tok";
-    d.innerHTML=`<div class="s-tok-head">${iconFor(t.sym)}<span>${t.name} (${t.sym})</span></div>
-      <div class="s-tok-fields">
-        <label>Amount<input class="s-in" data-tok="${i}" data-field="amount" inputmode="decimal" autocomplete="off"></label>
-        <label>Value ${curSym()}<input class="s-in" data-tok="${i}" data-field="val" inputmode="decimal" autocomplete="off"></label>
-      </div>`;
+    d.innerHTML=`<div class="s-tok-head">${tokenIcon(t)}<span>${t.name} (${t.sym})</span>${t.custom?`<button class="s-tok-x" data-rm="${i}" type="button">&#10005;</button>`:""}</div>
+      <label class="s-tok-amt">Amount<input class="s-in" data-tok="${i}" inputmode="decimal" autocomplete="off"></label>`;
     el.appendChild(d);
   });
   el.querySelectorAll("input[data-tok]").forEach(inp=>{
-    const i=+inp.dataset.tok,f=inp.dataset.field;
-    inp.value=(DATA.tokens[i][f]!=null)?DATA.tokens[i][f]:"";
-    inp.addEventListener("input",()=>{DATA.tokens[i][f]=inp.value;renderTokens();save();});
+    const i=+inp.dataset.tok;inp.value=(draft.tokens[i].amount!=null)?draft.tokens[i].amount:"";
+    inp.addEventListener("input",()=>{draft.tokens[i].amount=inp.value;});
   });
+  el.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{draft.tokens.splice(+b.dataset.rm,1);renderTokenSettings();}));
 }
+
+/* ---- add custom token by contract address ---- */
+async function addToken(platform,btn){
+  const inp=document.getElementById(platform==="solana"?"addSol":"addEth");
+  const addr=inp.value.trim();if(!addr)return;
+  btn.disabled=true;const label=btn.textContent;btn.textContent="…";
+  try{
+    const headers=draft.cgKey?{"x-cg-demo-api-key":draft.cgKey}:{};
+    const r=await fetch(`https://api.coingecko.com/api/v3/coins/${platform}/contract/${encodeURIComponent(addr)}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`,{headers});
+    if(!r.ok) throw new Error("not found");
+    const d=await r.json();
+    if(!d.id) throw new Error("not found");
+    if(draft.tokens.some(t=>t.cgId===d.id)){alert(d.name+" is already in your list.");return;}
+    draft.tokens.push({sym:(d.symbol||"?").toUpperCase(),name:d.name||"Token",cgId:d.id,amount:"0",v:false,custom:true,img:(d.image&&(d.image.small||d.image.thumb))||""});
+    inp.value="";renderTokenSettings();
+  }catch(e){alert("Couldn't find a token at that contract address on "+(platform==="solana"?"Solana":"Ethereum")+".");}
+  finally{btn.disabled=false;btn.textContent=label;}
+}
+document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>addToken(b.getAttribute("data-add"),b)));
 
 /* ---- emoji picker ---- */
 const PRESETS=["👻","🐼","🚀","💎","🔥","😎","👽","🤑","🌙","⚡","🦊","🐸","🐵","🤖","🎃","🌈","😀","🥳"];
-(function buildGrid(){
-  const g=document.getElementById("emojiGrid");
-  PRESETS.forEach(e=>{
-    const b=document.createElement("button");b.type="button";b.textContent=e;
-    b.addEventListener("click",()=>{setEmoji(e);closeVeil("emoji");});
-    g.appendChild(b);
-  });
-})();
-function firstEmoji(str){
-  str=(str||"").trim();if(!str)return "";
-  try{if(typeof Intl!=="undefined"&&Intl.Segmenter){const seg=new Intl.Segmenter();for(const s of seg.segment(str))return s.segment;}}catch(e){}
-  return Array.from(str)[0]||str;
+(function(){const g=document.getElementById("emojiGrid");PRESETS.forEach(e=>{const b=document.createElement("button");b.type="button";b.textContent=e;b.addEventListener("click",()=>{setEmoji(e);closeVeil("emoji");});g.appendChild(b);});})();
+function firstEmoji(str){str=(str||"").trim();if(!str)return "";try{if(typeof Intl!=="undefined"&&Intl.Segmenter){const seg=new Intl.Segmenter();for(const s of seg.segment(str))return s.segment;}}catch(e){}return Array.from(str)[0]||str;}
+let emojiTarget="live";
+function setEmoji(e){const v=firstEmoji(e);if(!v)return;
+  if(emojiTarget==="draft"){draft.emoji=v;document.getElementById("emojiChip").textContent=v;}
+  else{DATA.emoji=v;applyIdentity();save();}
 }
-function setEmoji(e){const v=firstEmoji(e);if(!v)return;DATA.emoji=v;applyIdentity();save();}
 const emojiInput=document.getElementById("emojiInput");
-emojiInput.addEventListener("input",()=>{const v=firstEmoji(emojiInput.value);if(v){DATA.emoji=v;applyIdentity();save();}});
-function openEmoji(){emojiInput.value="";openVeil("emoji");setTimeout(()=>emojiInput.focus(),200);}
-document.getElementById("editEmoji").addEventListener("click",openEmoji);
-document.getElementById("emojiChip").addEventListener("click",openEmoji);
+emojiInput.addEventListener("input",()=>{if(firstEmoji(emojiInput.value))setEmoji(emojiInput.value);});
+function openEmoji(target){emojiTarget=target;emojiInput.value="";openVeil("emoji");setTimeout(()=>emojiInput.focus(),200);}
+document.getElementById("editEmoji").addEventListener("click",()=>openEmoji("live"));
+document.getElementById("emojiChip").addEventListener("click",()=>openEmoji("draft"));
 
-/* tab router */
+/* ---- tabs ---- */
+let currentView="home";
 function showView(name){
+  currentView=name;
   document.querySelectorAll(".pill").forEach(p=>p.classList.toggle("active",p.dataset.view===name));
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));
   document.getElementById("searchbar").classList.toggle("hide",name!=="home");
-  document.querySelector(".screen").scrollTop=0;
+  document.getElementById("screen").scrollTop=0;
   document.querySelectorAll("#view-"+name+" .token,#view-"+name+" .market,#view-"+name+" .trend").forEach((r,i)=>{
     r.style.animation="none";void r.offsetWidth;r.style.animation="";r.style.animationDelay=(i*55)+"ms";
   });
-  if(name==="home")animateBalance();
+  if(name==="home")fitBalance();
 }
-document.querySelectorAll(".pill").forEach(p=>{
-  p.addEventListener("click",()=>showView(p.dataset.view));
-});
-document.querySelectorAll(".chip2").forEach(c=>{
-  c.addEventListener("click",()=>{document.querySelectorAll(".chip2").forEach(x=>x.classList.remove("on"));c.classList.add("on");});
-});
+document.querySelectorAll(".pill").forEach(p=>p.addEventListener("click",()=>showView(p.dataset.view)));
+document.querySelectorAll(".chip2").forEach(c=>c.addEventListener("click",()=>{document.querySelectorAll(".chip2").forEach(x=>x.classList.remove("on"));c.classList.add("on");}));
 
-function renderAll(){renderTokens();renderPerps();renderPredictions();renderMarkets();renderTrending();}
-renderAll();applyIdentity();applyCurrency();applyBalance();
-if(document.visibilityState==="visible")animateBalance();
-else document.addEventListener("visibilitychange",function h(){if(document.visibilityState==="visible"){animateBalance();document.removeEventListener("visibilitychange",h);}});
+/* ---- pull to refresh (home) ---- */
+const screenEl=document.getElementById("screen"),ptr=document.getElementById("ptr");
+let pStartY=null,pDist=0,pActive=false,refreshing=false;
+screenEl.addEventListener("touchstart",e=>{if(currentView==="home"&&screenEl.scrollTop<=0&&!refreshing){pStartY=e.touches[0].clientY;pActive=true;pDist=0;}},{passive:true});
+screenEl.addEventListener("touchmove",e=>{if(!pActive)return;pDist=e.touches[0].clientY-pStartY;if(pDist>0){const d=Math.min(pDist*0.5,80);ptr.style.height=d+"px";ptr.style.opacity=Math.min(d/56,1);}},{passive:true});
+screenEl.addEventListener("touchend",()=>{if(!pActive)return;pActive=false;if(pDist>64)doRefresh();ptr.style.height="";ptr.style.opacity="";pDist=0;});
+function doRefresh(){
+  if(refreshing)return;refreshing=true;ptr.classList.add("spin");
+  Promise.resolve(fetchPrices()).catch(()=>{}).finally(()=>{
+    setTimeout(()=>{ptr.classList.remove("spin");ptr.style.height="";ptr.style.opacity="";refreshing=false;},650);
+  });
+}
+
+/* ---- init ---- */
+function renderStatic(){renderPerps();renderPredictions();renderMarkets();renderTrending();}
+renderStatic();loadPriceCache();refreshUI();safeFetchPrices();
+window.addEventListener("resize",fitBalance);
 </script>
 <!-- krypt:app:start -->
 <script src="assets/phantom-app.js" data-root="./" data-label="Phantom" defer></script>
