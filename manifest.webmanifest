@@ -1,0 +1,30 @@
+{
+  "name": "Phantom",
+  "short_name": "Phantom",
+  "description": "Phantom — a learning recreation (TEST demo).",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#1C1C28",
+  "theme_color": "#AB9FF2",
+  "icons": [
+    {
+      "src": "assets/icons/phantom-wallet-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/phantom-wallet-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

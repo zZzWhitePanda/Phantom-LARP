@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" data-krypt-status="translucent">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Phantom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     PHANTOM WALLET — a learning recreation (TEST demo)
+     Data-driven: see the DATA object in the script below.
+     4 working tabs: Home / Trade / Predict / Explore.
+     Toggle "Edit" (top-right) to click-edit values; saved to
+     your browser (localStorage).
+     ============================================================ */
+  :root{
+    --bg:#000000;
+    --card:#1c1c1e;
+    --card-hi:#2a2a2c;
+    --text:#ffffff;
+    --muted:#8a8a8e;
+    --green:#3ad17c;
+    --red:#ff5a5a;
+    --accent:#ab9ff2;
+    --pill:#1f1f22;
+    --radius:20px;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:#0a0a0a;font-family:var(--font);color:var(--text);
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* TEST watermark */
+
+  /* Phone frame */
+  .phone{position:relative;width:390px;max-width:100%;height:844px;background:var(--bg);
+    border-radius:44px;box-shadow:0 0 0 12px #111,0 40px 90px rgba(0,0,0,.7);overflow:hidden;display:flex;flex-direction:column;}
+
+  /* Status bar */
+  .statusbar{display:flex;align-items:center;justify-content:space-between;padding:15px 30px 4px;font-size:15px;font-weight:600;}
+  .statusbar .right{display:flex;align-items:center;gap:7px;}
+  .battery{border:1.5px solid #fff;border-radius:4px;width:26px;height:13px;position:relative;display:flex;align-items:center;padding:1.5px;}
+  .battery::after{content:"";position:absolute;right:-4px;top:4px;width:2px;height:5px;background:#fff;border-radius:0 2px 2px 0;}
+  .battery i{display:block;height:100%;background:#fff;border-radius:1.5px;width:45%;}
+  .signal{display:flex;align-items:flex-end;gap:2px;height:12px;}
+  .signal b{width:3px;background:#fff;border-radius:1px;display:block;}
+  .signal b:nth-child(1){height:5px}.signal b:nth-child(2){height:7px}
+  .signal b:nth-child(3){height:9px}.signal b:nth-child(4){height:12px;opacity:.35}
+
+  .screen{flex:1;overflow-y:auto;padding:0 18px 96px;scrollbar-width:none;}
+  .screen::-webkit-scrollbar{display:none;}
+
+  /* Top nav */
+  .topnav{display:flex;align-items:center;gap:7px;padding:12px 2px 20px;}
+  .avatar{width:40px;height:40px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 35% 30%,#c9bdff,#9a86f5 55%,#7a63e6);box-shadow:0 2px 8px rgba(122,99,230,.4);}
+  .pill{background:var(--pill);color:var(--muted);padding:9px 15px;border-radius:22px;font-size:15px;font-weight:500;cursor:pointer;transition:.18s;white-space:nowrap;}
+  .pill.active{background:var(--accent);color:#241a44;}
+  .pill:not(.active):hover{background:#2a2a2e;color:#d0d0d4;}
+
+  /* Views */
+  .view{display:none;}
+  .view.active{display:block;animation:viewfade .28s ease;}
+  @keyframes viewfade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .view-title{font-size:28px;font-weight:700;letter-spacing:-.5px;margin:2px 2px 18px;}
+
+  /* Account + balance (Home) */
+  .account{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:17px;font-weight:500;margin:2px 4px;}
+  .account svg{width:15px;height:15px;}
+  .balance{font-size:62px;font-weight:600;letter-spacing:-2px;margin:2px 2px 0;line-height:1.04;}
+  .change{display:flex;align-items:center;gap:10px;margin:8px 4px 28px;font-size:17px;font-weight:600;}
+  .change .abs{color:var(--green);}
+  .change .pct{background:var(--green);color:#052b17;padding:4px 11px;border-radius:9px;font-size:15px;font-weight:700;}
+
+  .card-cash{background:var(--card);border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
+  .card-cash .left{display:flex;align-items:center;gap:15px;font-size:20px;font-weight:600;}
+  .cash-ico{width:44px;height:44px;display:flex;align-items:center;justify-content:center;}
+  .card-cash .amt{font-size:20px;font-weight:600;}
+
+  .tokens-head{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:600;margin:0 2px 14px;cursor:pointer;}
+  .tokens-head svg{width:20px;height:20px;stroke:#fff;}
+
+  /* Token rows */
+  .token{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:var(--radius);padding:15px 16px;margin-bottom:12px;
+    opacity:0;transform:translateY(14px);animation:rise .5s forwards;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+  .ico{width:46px;height:46px;border-radius:50%;flex:0 0 auto;position:relative;display:flex;align-items:center;justify-content:center;font-weight:800;overflow:visible;}
+  .ico .badge{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:6px;background:#2b2b2e;border:2px solid var(--card);display:flex;align-items:center;justify-content:center;font-size:10px;color:#cfcfd4;}
+  /* Real coin artwork (assets/coins). Rounded here rather than on .ico,
+     which keeps overflow:visible so the chain badge can still hang off it. */
+  .ico img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
+  .token .mid{flex:1;min-width:0;}
+  .token .name{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:500;}
+  .verify{width:15px;height:15px;flex:0 0 auto;}
+  .token .qty{color:var(--muted);font-size:15px;margin-top:2px;font-weight:400;}
+  .token .rt{text-align:right;}
+  .token .val{font-size:18px;font-weight:500;}
+  .token .delta{font-size:15px;font-weight:600;margin-top:2px;}
+  .token .delta.up{color:var(--green);}
+  .token .delta.down{color:var(--red);}
+  .token:active{transform:scale(.985);}
+
+  /* Trade / swap */
+  .swap-card{background:var(--card);border-radius:22px;padding:6px;position:relative;margin-bottom:16px;}
+  .swap-row{background:#151517;border-radius:18px;padding:18px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .swap-row+.swap-row{margin-top:6px;}
+  .swap-label{color:var(--muted);font-size:14px;font-weight:600;margin-bottom:6px;}
+  .swap-amt{font-size:32px;font-weight:800;letter-spacing:-1px;}
+  .swap-usd{color:var(--muted);font-size:14px;margin-top:4px;}
+  .swap-token{display:flex;align-items:center;gap:8px;background:var(--card-hi);padding:8px 12px 8px 8px;border-radius:20px;font-weight:700;font-size:16px;white-space:nowrap;}
+  .swap-token .ico{width:30px;height:30px;}
+  .swap-arrow{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:var(--card-hi);border:4px solid var(--card);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;z-index:2;}
+  .swap-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;padding:8px 8px;}
+  .swap-meta b{color:#fff;font-weight:600;}
+  .primary-btn{width:100%;background:var(--accent);color:#241a44;border:0;font-family:var(--font);font-size:18px;font-weight:800;padding:17px;border-radius:18px;margin-top:14px;cursor:pointer;transition:.15s;}
+  .primary-btn:hover{filter:brightness(1.06);}
+  .primary-btn:active{transform:scale(.98);}
+
+  /* Predict */
+  .market{background:var(--card);border-radius:18px;padding:16px 16px 14px;margin-bottom:12px;opacity:0;transform:translateY(14px);animation:rise .5s forwards;}
+  .market .q{font-size:16px;font-weight:700;line-height:1.35;margin-bottom:4px;}
+  .market .vol{color:var(--muted);font-size:13px;margin-bottom:12px;}
+  .market .odds{display:flex;gap:10px;}
+  .market .odds button{flex:1;border:0;font-family:var(--font);font-weight:700;font-size:15px;padding:12px;border-radius:12px;cursor:pointer;transition:.15s;}
+  .market .yes{background:rgba(58,209,124,.16);color:#3ad17c;}
+  .market .no{background:rgba(255,90,90,.16);color:#ff6b6b;}
+  .market .odds button:hover{filter:brightness(1.25);}
+  .market .odds button:active{transform:scale(.97);}
+
+  /* Explore */
+  .chiprow{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;}
+  .chiprow::-webkit-scrollbar{display:none;}
+  .chip2{background:var(--card);color:var(--muted);padding:8px 15px;border-radius:16px;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;transition:.15s;}
+  .chip2.on{background:var(--accent);color:#241a44;}
+  .chip2:not(.on):hover{background:#2a2a2e;}
+  .trend{display:flex;align-items:center;gap:13px;padding:13px 6px;border-bottom:1px solid #171719;opacity:0;transform:translateY(12px);animation:rise .5s forwards;}
+  .trend .rank{color:var(--muted);font-size:14px;font-weight:700;width:16px;}
+  .trend .mid{flex:1;}
+  .trend .tn{font-size:16px;font-weight:700;}
+  .trend .ts{color:var(--muted);font-size:13px;}
+  .trend .rt{text-align:right;}
+  .trend .tp{font-size:16px;font-weight:700;}
+  .trend .tc{font-size:13px;font-weight:600;}
+  .up{color:var(--green);}.down{color:var(--red);}
+
+  /* Search bar */
+  .searchbar{position:absolute;left:18px;right:18px;bottom:22px;display:flex;align-items:center;gap:11px;transition:.2s;}
+  .searchbar.hide{opacity:0;pointer-events:none;transform:translateY(10px);}
+  .search{flex:1;background:var(--card);border-radius:26px;padding:14px 18px;display:flex;align-items:center;gap:11px;color:var(--muted);font-size:17px;}
+  .search svg{width:19px;height:19px;}
+  .fab{width:54px;height:54px;border-radius:50%;flex:0 0 auto;background:var(--accent);color:#241a44;font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(171,159,242,.4);transition:.15s;}
+  .fab:hover{transform:scale(1.06);}.fab:active{transform:scale(.94);}
+
+  /* Chrome (toolbar) */
+  .toolbar{position:fixed;top:18px;right:18px;display:flex;gap:8px;z-index:50;}
+  .toolbar button{background:#1c1c1e;color:#fff;border:1px solid #333;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:.15s;}
+  .toolbar button:hover{background:#2a2a2c;}
+  .toolbar button.on{background:var(--accent);color:#241a44;border-color:var(--accent);}
+
+  body.editing [data-edit]{outline:1.5px dashed var(--accent);outline-offset:3px;border-radius:4px;cursor:text;}
+  [data-edit]:focus{outline:1.5px solid var(--accent);}
+  .hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;}
+</style>
+<!-- krypt:phone:start -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Phantom">
+<meta name="theme-color" content="#AB9FF2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icons/phantom-wallet-180.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icons/phantom-wallet-512.png">
+<link rel="stylesheet" href="assets/phone.css">
+<!-- krypt:phone:end -->
+</head>
+<body>
+
+<div class="toolbar">
+  <button id="editBtn">✎ Edit</button>
+  <button id="resetBtn">↺ Reset</button>
+</div>
+
+<div class="phone">
+  <div class="statusbar">
+    <span>19:39 <span style="opacity:.85">&#9790;</span></span>
+    <span class="right">
+      <span class="signal"><b></b><b></b><b></b><b></b></span>
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><path d="M9 3C11.5 3 13.8 4 15.5 5.6M9 7C10.4 7 11.7 7.6 12.7 8.5M4.3 5.6C6 4 8.3 3 9 3M6.3 8.5C7.3 7.6 8 7.4 9 7.4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="11" r="1.2" fill="#fff"/></svg>
+      <span class="battery"><i></i></span>
+    </span>
+  </div>
+
+  <div class="screen">
+    <!-- Top nav (working tabs) -->
+    <div class="topnav">
+      <div class="avatar">
+        <svg viewBox="0 0 40 40" width="28" height="28"><path d="M20 6c-7 0-12 5-12 12v8.6c0 1.6 1.9 2.4 3.1 1.3l1.7-1.5c.6-.5 1.5-.5 2.1 0l1.9 1.7c.6.5 1.5.5 2.1 0l1.9-1.7c.6-.5 1.5-.5 2.1 0l1.7 1.5c1.2 1.1 3.1.3 3.1-1.3V18c0-7-5-12-11.7-12z" fill="#fff"/><ellipse cx="16.4" cy="18.4" rx="1.9" ry="2.5" fill="#7a63e6"/><ellipse cx="23.6" cy="18.4" rx="1.9" ry="2.5" fill="#7a63e6"/></svg>
+      </div>
+      <div class="pill active" data-view="home">Home</div>
+      <div class="pill" data-view="trade">Trade</div>
+      <div class="pill" data-view="predict">Predict</div>
+      <div class="pill" data-view="explore">Explore</div>
+    </div>
+
+    <!-- HOME -->
+    <div class="view active" id="view-home">
+      <div class="account">
+        <span data-edit="account">GG.xyz MS1</span>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#8a8a8e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="balance">$<span id="balance" data-edit="balance">6.21</span></div>
+      <div class="change">
+        <span class="abs">+$<span data-edit="changeAbs">0.0753</span></span>
+        <span class="pct">+<span data-edit="changePct">1.23</span>%</span>
+      </div>
+      <div class="card-cash">
+        <div class="left">
+          <div class="cash-ico"><svg viewBox="0 0 44 44" width="40" height="40" fill="none"><rect x="5" y="13" width="34" height="18" rx="4.5" stroke="#9a9a9e" stroke-width="2.4"/><circle cx="22" cy="22" r="4.6" stroke="#9a9a9e" stroke-width="2.4"/><path d="M9 16.5v11M35 16.5v11" stroke="#9a9a9e" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+          <span>Cash</span>
+        </div>
+        <div class="amt">$<span data-edit="cash">0.28</span></div>
+      </div>
+      <div class="tokens-head">Tokens
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div id="tokenList"></div>
+    </div>
+
+    <!-- TRADE -->
+    <div class="view" id="view-trade">
+      <h2 class="view-title">Swap</h2>
+      <div class="swap-card">
+        <div class="swap-row">
+          <div>
+            <div class="swap-label">You pay</div>
+            <div class="swap-amt" data-edit="tradePay">0.025</div>
+            <div class="swap-usd">&#8776; $1.94</div>
+          </div>
+          <div class="swap-token"><span class="ico" id="swapIcoA"></span>SOL &#9662;</div>
+        </div>
+        <div class="swap-arrow">&#8595;</div>
+        <div class="swap-row">
+          <div>
+            <div class="swap-label">You receive</div>
+            <div class="swap-amt" data-edit="tradeRecv">1.93</div>
+            <div class="swap-usd">&#8776; $1.93</div>
+          </div>
+          <div class="swap-token"><span class="ico" id="swapIcoB"></span>USDC &#9662;</div>
+        </div>
+      </div>
+      <div class="swap-meta"><span>Rate</span><b>1 SOL &#8776; 77.4 USDC</b></div>
+      <div class="swap-meta"><span>Network fee</span><b>$0.001</b></div>
+      <div class="swap-meta"><span>Provider</span><b>Phantom Swaps</b></div>
+      <button class="primary-btn">Review Order</button>
+    </div>
+
+    <!-- PREDICT -->
+    <div class="view" id="view-predict">
+      <h2 class="view-title">Predict</h2>
+      <div id="marketList"></div>
+    </div>
+
+    <!-- EXPLORE -->
+    <div class="view" id="view-explore">
+      <h2 class="view-title">Explore</h2>
+      <div class="chiprow">
+        <div class="chip2 on">Trending</div><div class="chip2">Gainers</div><div class="chip2">Losers</div><div class="chip2">New</div>
+      </div>
+      <div id="trendList"></div>
+    </div>
+  </div>
+
+  <!-- Search bar (Home only) -->
+  <div class="searchbar" id="searchbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#8a8a8e" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="#8a8a8e" stroke-width="2" stroke-linecap="round"/></svg>
+      Search Phantom
+    </div>
+    <div class="fab">+</div>
+  </div>
+</div>
+
+<div class="hint">Tap Home · Trade · Predict · Explore to switch tabs · Toggle Edit to change values</div>
+
+<script>
+/* ============================================================
+   DATA — edit freely. tokens[], markets[], trending[].
+   ============================================================ */
+const ICONS = {
+  ETH:  `<span class="ico" style="background:#fff"><svg viewBox="0 0 32 32" width="28" height="28"><polygon points="16,4 16,13 23,16.5" fill="#343434"/><polygon points="16,4 9,16.5 16,13" fill="#8c8c8c"/><polygon points="16,21 16,28 23,17.9" fill="#343434"/><polygon points="16,28 16,21 9,17.9" fill="#8c8c8c"/><polygon points="16,19.7 23,16.5 16,13" fill="#131313"/><polygon points="16,13 9,16.5 16,19.7" fill="#393939"/></svg></span>`,
+  SOL:  `<span class="ico"><img src="assets/coins/sol.png" alt="" draggable="false"></span>`,
+  USDT: `<span class="ico"><img src="assets/coins/usdt.png" alt="" draggable="false"><span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
+  USDC: `<span class="ico"><img src="assets/coins/usdc.png" alt="" draggable="false"><span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
+  DOGE: `<span class="ico" style="background:#111;color:#fff;font-size:11px">DOGE<span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
+  HAT:  `<span class="ico" style="background:#111;color:#fff;font-size:12px">HAT<span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
+};
+
+const DEFAULT_DATA = {
+  tokens:[
+    {sym:"ETH",  name:"Ethereum",  v:true,  qty:"0.00158 ETH",  val:"2.99", delta:"+$0.04",  dir:"up"},
+    {sym:"SOL",  name:"Solana",    v:true,  qty:"0.02504 SOL",  val:"1.94", delta:"+$0.03",  dir:"up"},
+    {sym:"USDT", name:"Tether USD",v:true,  qty:"0.72 USDT",    val:"0.72", delta:"-<$0.01", dir:"down"},
+    {sym:"USDC", name:"USDC",      v:true,  qty:"0.27218 USDC", val:"0.27", delta:"-<$0.01", dir:"down"},
+    {sym:"DOGE", name:"Moon Doge",v:false, qty:"1 DOGE",       val:"<0.01",delta:"+<$0.01", dir:"up"},
+    {sym:"HAT",  name:"Wizard Hat", v:false, qty:"1 HAT",        val:"<0.01",delta:"+<$0.01", dir:"up"},
+  ],
+  markets:[
+    {q:"Will BTC close above $100k in 2026?", vol:"$2.4M Vol.", yes:"64", no:"36"},
+    {q:"Will ETH flip $5,000 this quarter?",  vol:"$880K Vol.", yes:"41", no:"59"},
+    {q:"Will Solana hit a new all-time high?", vol:"$1.1M Vol.", yes:"57", no:"43"},
+    {q:"Fed rate cut at the next meeting?",   vol:"$3.9M Vol.", yes:"72", no:"28"},
+  ],
+  trending:[
+    {sym:"SOL",  name:"Solana",   sub:"SOL",  price:"$77.42",  chg:"+4.8%",  dir:"up"},
+    {sym:"ETH",  name:"Ethereum", sub:"ETH",  price:"$1,894",  chg:"+2.1%",  dir:"up"},
+    {sym:"DOGE", name:"Moon Doge",sub:"DOGE", price:"$0.0031", chg:"+18.4%", dir:"up"},
+    {sym:"USDC", name:"USD Coin", sub:"USDC", price:"$1.00",   chg:"0.0%",   dir:"up"},
+    {sym:"HAT",  name:"Wizard Hat", sub:"HAT",  price:"$0.0009", chg:"-6.2%",  dir:"down"},
+  ]
+};
+
+const STORE_KEY="phantom-dash-v1";
+let DATA=load();
+function load(){try{const s=localStorage.getItem(STORE_KEY);if(s)return{...structuredClone(DEFAULT_DATA),...JSON.parse(s)};}catch(e){}return structuredClone(DEFAULT_DATA);}
+function save(){localStorage.setItem(STORE_KEY,JSON.stringify(DATA));}
+
+const verify=`<svg class="verify" viewBox="0 0 24 24"><path d="M12 2l2.2 1.5 2.6-.4 1.3 2.3 2.3 1.3-.4 2.6L23 12l-1.5 2.2.4 2.6-2.3 1.3-1.3 2.3-2.6-.4L12 22l-2.2-1.5-2.6.4-1.3-2.3-2.3-1.3.4-2.6L1 12l1.5-2.2-.4-2.6 2.3-1.3 1.3-2.3 2.6.4z" fill="#ab9ff2"/><path d="M8.4 12l2.4 2.3 4.6-4.8" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function renderTokens(){
+  const list=document.getElementById("tokenList");list.innerHTML="";
+  DATA.tokens.forEach((t,i)=>{
+    const row=document.createElement("div");row.className="token";row.style.animationDelay=(i*65)+"ms";
+    row.innerHTML=`${ICONS[t.sym]||`<span class="ico" style="background:#333">${t.sym}</span>`}
+      <div class="mid"><div class="name"><span data-edit="tok-${i}-name">${t.name}</span>${t.v?verify:""}</div>
+      <div class="qty" data-edit="tok-${i}-qty">${t.qty}</div></div>
+      <div class="rt"><div class="val">$<span data-edit="tok-${i}-val">${t.val}</span></div>
+      <div class="delta ${t.dir}" data-edit="tok-${i}-delta">${t.delta}</div></div>`;
+    row.addEventListener("click",()=>{if(!editing())pulse(row);});
+    list.appendChild(row);
+  });
+  document.getElementById("swapIcoA").outerHTML=ICONS.SOL;
+  document.getElementById("swapIcoB").outerHTML=ICONS.USDC;
+}
+function renderMarkets(){
+  const el=document.getElementById("marketList");el.innerHTML="";
+  DATA.markets.forEach((m,i)=>{
+    const c=document.createElement("div");c.className="market";c.style.animationDelay=(i*65)+"ms";
+    c.innerHTML=`<div class="q" data-edit="mkt-${i}-q">${m.q}</div><div class="vol" data-edit="mkt-${i}-vol">${m.vol}</div>
+      <div class="odds"><button class="yes">Yes <span data-edit="mkt-${i}-yes">${m.yes}</span>&#162;</button>
+      <button class="no">No <span data-edit="mkt-${i}-no">${m.no}</span>&#162;</button></div>`;
+    el.appendChild(c);
+  });
+}
+function renderTrending(){
+  const el=document.getElementById("trendList");el.innerHTML="";
+  DATA.trending.forEach((t,i)=>{
+    const r=document.createElement("div");r.className="trend";r.style.animationDelay=(i*55)+"ms";
+    r.innerHTML=`<span class="rank">${i+1}</span>${ICONS[t.sym]||`<span class="ico" style="background:#333">${t.sym}</span>`}
+      <div class="mid"><div class="tn" data-edit="tr-${i}-name">${t.name}</div><div class="ts" data-edit="tr-${i}-sub">${t.sub}</div></div>
+      <div class="rt"><div class="tp" data-edit="tr-${i}-price">${t.price}</div><div class="tc ${t.dir}" data-edit="tr-${i}-chg">${t.chg}</div></div>`;
+    el.appendChild(r);
+  });
+}
+function pulse(el){el.animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:220,easing:"ease"});}
+function editing(){return document.body.classList.contains("editing");}
+
+/* balance count-up */
+function animateBalance(){
+  const el=document.getElementById("balance");
+  const target=parseFloat(DATA.balance ?? el.textContent)||0;let t0=null;
+  function step(ts){if(!t0)t0=ts;const p=Math.min((ts-t0)/900,1),e=1-Math.pow(1-p,3);el.textContent=(target*e).toFixed(2);if(p<1)requestAnimationFrame(step);}
+  requestAnimationFrame(step);
+}
+
+/* editing */
+function bindEdits(){
+  document.querySelectorAll("[data-edit]").forEach(el=>{
+    el.setAttribute("contenteditable",editing());
+    el.oninput=()=>{
+      const k=el.getAttribute("data-edit"),v=el.textContent;
+      let m;
+      if(m=k.match(/^tok-(\d+)-(\w+)$/))DATA.tokens[+m[1]][m[2]]=v;
+      else if(m=k.match(/^mkt-(\d+)-(\w+)$/))DATA.markets[+m[1]][m[2]]=v;
+      else if(m=k.match(/^tr-(\d+)-(\w+)$/))DATA.trending[+m[1]][m[2]]=v;
+      else DATA[k]=v;
+      save();
+    };
+  });
+}
+document.getElementById("editBtn").addEventListener("click",function(){
+  const on=document.body.classList.toggle("editing");
+  this.classList.toggle("on",on);this.textContent=on?"✓ Done":"✎ Edit";bindEdits();
+});
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  if(confirm("Reset this dashboard to its original values?")){
+    localStorage.removeItem(STORE_KEY);DATA=structuredClone(DEFAULT_DATA);
+    renderAll();restoreScalars();animateBalance();
+  }
+});
+function restoreScalars(){
+  document.querySelectorAll("[data-edit]").forEach(el=>{
+    const k=el.getAttribute("data-edit");
+    if(/^(tok|mkt|tr)-/.test(k)||k==="balance")return;
+    if(DATA[k]!==undefined)el.textContent=DATA[k];
+  });
+}
+
+/* tab router */
+function showView(name){
+  document.querySelectorAll(".pill").forEach(p=>p.classList.toggle("active",p.dataset.view===name));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));
+  document.getElementById("searchbar").classList.toggle("hide",name!=="home");
+  document.querySelector(".screen").scrollTop=0;
+  // re-trigger row animations for the shown view
+  document.querySelectorAll("#view-"+name+" .token,#view-"+name+" .market,#view-"+name+" .trend").forEach((r,i)=>{
+    r.style.animation="none";void r.offsetWidth;r.style.animation="";r.style.animationDelay=(i*55)+"ms";
+  });
+  if(name==="home")animateBalance();
+  bindEdits();
+}
+document.querySelectorAll(".pill").forEach(p=>{
+  p.addEventListener("click",()=>{if(!editing())showView(p.dataset.view);});
+});
+document.querySelectorAll(".chip2").forEach(c=>{
+  c.addEventListener("click",()=>{if(editing())return;document.querySelectorAll(".chip2").forEach(x=>x.classList.remove("on"));c.classList.add("on");});
+});
+
+function renderAll(){renderTokens();renderMarkets();renderTrending();}
+renderAll();restoreScalars();bindEdits();
+if(document.visibilityState==="visible")animateBalance();
+else document.addEventListener("visibilitychange",function h(){if(document.visibilityState==="visible"){animateBalance();document.removeEventListener("visibilitychange",h);}});
+</script>
+<!-- krypt:app:start -->
+<script src="assets/phantom-app.js" data-root="./" data-label="Phantom" defer></script>
+<!-- krypt:app:end -->
+</body>
+</html>

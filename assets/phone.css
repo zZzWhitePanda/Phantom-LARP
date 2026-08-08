@@ -1,0 +1,114 @@
+/* ============================================================
+   phone.css — makes the mobile dashboards fill a real phone screen.
+
+   On a desktop the dashboards render inside a 390x844 phone frame
+   (black bezel, rounded corners, drop shadow) because you are
+   looking *at* a phone. On an actual phone that frame is redundant
+   and makes everything smaller — so here we drop the bezel and let
+   the mock run edge to edge, like the real app would.
+
+   Loaded by every mobile dashboard via a <link> in its <head>.
+   Nothing here applies on desktop.
+   ============================================================ */
+
+@media (max-width: 560px) {
+
+  html, body {
+    height: 100%;
+    overflow: hidden;                 /* the .screen inside does the scrolling */
+  }
+
+  body {
+    padding: 0 !important;
+    display: block !important;
+    background: #000 !important;      /* only visible behind the safe areas */
+  }
+
+  .phone {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;        /* follows Safari's collapsing toolbar */
+    min-height: 100dvh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  /* Some dashboards fake the bezel with a pseudo-element instead of a shadow. */
+  .phone::before,
+  .phone::after { display: none !important; }
+
+  /* The notch / dynamic-island cutout drawn by the mock — the real phone
+     already has one, so don't draw a second. */
+  .notch, .island, .dynamic-island { display: none !important; }
+}
+
+/* ---- The mock's fake status bar ----
+   On a desktop the 9:41 / signal / wi-fi / battery strip is part of the
+   illusion — it's what makes the frame read as a phone. On an actual
+   phone it is the third status bar on screen, under the real one and
+   Safari's toolbar, showing a time that isn't the time. Drop it.
+
+   Scoped to a browser tab: installed to the home screen there is no
+   browser chrome and the strip is doing a different job — reserving the
+   safe area under the real clock — which the rules further down handle. */
+@media (max-width: 560px) and (display-mode: browser),
+       (max-width: 560px) and (display-mode: minimal-ui) {
+  .phone .statusbar { display: none !important; }
+}
+
+@media (max-width: 560px) {
+
+  /* ---- Get the authoring chrome off the mock ----
+     The Collection link, the Edit/Reset toolbar and the caption underneath
+     are all position:fixed over the page. At desktop size they sit in the
+     margin around the phone frame; at phone size there is no margin, so
+     they land on top of the mock and wreck it.
+
+     They aren't lost — krypt-app.js puts all of it in a panel in the middle
+     of the screen, opened by tapping three times anywhere. */
+  .back,
+  .toolbar,
+  .top-tools,
+  .hint { display: none !important; }
+
+  /* Safety net for any future dashboard that names its toolbar something
+     else: hide whatever element directly wraps the Edit/Reset buttons. */
+  body > *:has(> #editBtn),
+  body > *:has(> #resetBtn) { display: none !important; }
+  #editBtn, #resetBtn { display: none !important; }
+}
+
+/* ---- Installed to the home screen (Share -> Add to Home Screen) ----
+   There is no browser chrome now, so the phone's real status bar has to
+   share the top of the screen with the mock's fake one. Which of the two
+   rules below applies is set by patch-dashboards.js, from whether this
+   dashboard is dark at the top:
+
+   translucent — dark apps. iOS draws a white clock straight over the page,
+     so keep the fake status bar's background as the strip behind it but
+     collapse it to exactly the safe-area height and hide its contents.
+
+   opaque — light apps. iOS reserves and paints the strip itself, so the
+     fake one is pure duplication: drop it entirely. */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+
+  html[data-krypt-status="translucent"] .phone .statusbar {
+    height: env(safe-area-inset-top, 44px) !important;
+    min-height: env(safe-area-inset-top, 44px) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html[data-krypt-status="translucent"] .phone .statusbar > * {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  html[data-krypt-status="opaque"] .phone .statusbar {
+    display: none !important;
+  }
+}
+
+/* The floating Gallery / Fullscreen / Install control lives in
+   assets/krypt-app.js — it carries its own styles. */
