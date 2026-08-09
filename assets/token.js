@@ -57,21 +57,56 @@
     marketCap:null,
   };
 
-  /* ---------- cache + rate-limit guard ----------
-     CoinGecko's public free tier throttles hard (~10-30 req/min).
-     - In-memory chart cache survives timeframe switches within a
-       session; localStorage cache with a 20-minute TTL survives page
-       reloads so LO doesn't have to re-fetch everything after F5.
-     - inflight dedupes concurrent requests for the same URL so
-       spamming the same pill doesn't stack requests.
-     - cooldownUntil holds a wall-clock time after which we're
-       allowed to hit the network again after a 429. Chart requests
-       are skipped entirely while a cooldown is active. */
+  /* ---------- data sources ----------
+     Primary: Binance public klines. No key, ~1200 req/min, CORS-open,
+     returns OHLC candles in a simple array format. Massively more
+     permissive than CoinGecko.
+     Stables (USDT/USDC/DAI/…): synthesised as a near-flat $1 line,
+     no request needed at all.
+     Fallback: CoinGecko for anything Binance doesn't list, with the
+     same 60s cooldown-on-429 guard as before. */
   const chartCache=new Map();
   const inflight=new Map();
-  let cooldownUntil=0;
+  let cooldownUntil=0;                   /* CoinGecko-only cooldown */
   const CHART_TTL_MS=20*60*1000;
   const CHART_LS_PREFIX="phantom-chart-";
+
+  /* cgId → Binance USDT-pair symbol. Extend as needed. */
+  const BINANCE_SYMBOL = {
+    bitcoin:"BTCUSDT", ethereum:"ETHUSDT", solana:"SOLUSDT",
+    chainlink:"LINKUSDT", weth:"ETHUSDT", aave:"AAVEUSDT",
+    ethena:"ENAUSDT", "ethena-2":"ENAUSDT",
+    cardano:"ADAUSDT", polkadot:"DOTUSDT",
+    "matic-network":"POLUSDT", polygon:"POLUSDT",
+    avalanche:"AVAXUSDT", "avalanche-2":"AVAXUSDT",
+    dogecoin:"DOGEUSDT", ripple:"XRPUSDT", litecoin:"LTCUSDT",
+    "bitcoin-cash":"BCHUSDT", tron:"TRXUSDT",
+    uniswap:"UNIUSDT", "shiba-inu":"SHIBUSDT",
+    cosmos:"ATOMUSDT", monero:"XMRUSDT",
+    filecoin:"FILUSDT", algorand:"ALGOUSDT",
+    "internet-computer":"ICPUSDT", aptos:"APTUSDT",
+    arbitrum:"ARBUSDT", optimism:"OPUSDT",
+    near:"NEARUSDT", pepe:"PEPEUSDT",
+    bnb:"BNBUSDT", binancecoin:"BNBUSDT",
+    "the-open-network":"TONUSDT", toncoin:"TONUSDT",
+    stellar:"XLMUSDT", "hedera-hashgraph":"HBARUSDT",
+    "sui":"SUIUSDT", "wrapped-bitcoin":"BTCUSDT",
+  };
+
+  /* Timeframe → Binance klines interval + how many candles. */
+  const BIN_TF = {
+    live:{interval:"1m",  limit:120 },   /* last 2h  */
+    "1d":{interval:"15m", limit:96  },   /* last 24h */
+    "1w":{interval:"1h",  limit:168 },   /* last 7d  */
+    "1m":{interval:"4h",  limit:180 },   /* last 30d */
+    "1y":{interval:"1d",  limit:365 },   /* last 1y  */
+    all: {interval:"1w",  limit:1000},   /* ~19y     */
+  };
+
+  const STABLE_CGIDS = new Set([
+    "tether","usd-coin","dai","binance-usd","true-usd","usdd",
+    "frax","first-digital-usd","paypal-usd","pyusd",
+  ]);
 
   function loadLocal(key){
     try{
@@ -153,26 +188,89 @@
      from a previous timeframe can't overwrite the current one. */
   let fetchId=0;
 
-  async function fetchOnce(cgId, days){
-    const key=cgId+"|"+days;
-    if(inflight.has(key)) return inflight.get(key);
+  async function fetchBinance(symbol, tf){
+    const cfg=BIN_TF[tf]||BIN_TF["1w"];
+    const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${cfg.interval}&limit=${cfg.limit}`;
+    const r=await fetch(url);
+    if(!r.ok) throw new Error("binance "+r.status);
+    const d=await r.json();
+    /* Each kline: [openTime,o,h,l,close,volume,closeTime,...] */
+    return d.map(k=>({t:k[0], p:parseFloat(k[4])}));
+  }
+
+  async function fetchCoinGecko(cgId, tf){
     if(Date.now()<cooldownUntil){
       const wait=Math.ceil((cooldownUntil-Date.now())/1000);
       const err=new Error("cooldown"); err.cooldown=wait; throw err;
     }
+    const days=(TIMEFRAMES[tf]||TIMEFRAMES["1w"]).days;
     const cur=(App.DATA.currency||"USD").toLowerCase();
     const url=`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(cgId)}/market_chart?vs_currency=${cur}&days=${days}`;
     const headers=App.DATA.cgKey?{"x-cg-demo-api-key":App.DATA.cgKey}:{};
-    const p=(async()=>{
-      const r=await fetch(url,{headers});
-      if(r.status===429){
-        cooldownUntil=Date.now()+60*1000;    /* park for a minute */
-        const err=new Error("rate-limited"); err.cooldown=60; throw err;
+    const r=await fetch(url,{headers});
+    if(r.status===429){
+      cooldownUntil=Date.now()+60*1000;
+      const err=new Error("rate-limited"); err.cooldown=60; throw err;
+    }
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    return (d.prices||[]).map(x=>({t:x[0],p:x[1]}));
+  }
+
+  /* Stables: fake a near-flat $1 line with tiny oscillation so the
+     chart still has some texture and scrubbing still works. */
+  function synthStable(tf){
+    const cfg=BIN_TF[tf]||BIN_TF["1w"];
+    const now=Date.now();
+    const stepMs = {"1m":60000,"5m":300000,"15m":900000,"30m":1800000,
+      "1h":3600000,"2h":7200000,"4h":14400000,"6h":21600000,
+      "12h":43200000,"1d":86400000,"3d":259200000,"1w":604800000}[cfg.interval] || 3600000;
+    const n=Math.min(cfg.limit,200);
+    const out=[];
+    for(let i=0;i<n;i++){
+      const t = now - (n-1-i)*stepMs;
+      const p = 1 + Math.sin(i*0.7)*0.0008 + Math.sin(i*0.13)*0.0015;
+      out.push({t,p});
+    }
+    return out;
+  }
+
+  /* Router: pick a data source per token. Returns a series in USD;
+     the caller scales it to the user's display currency. */
+  async function fetchSeries(token, tf){
+    const cgId = token.cgId;
+    /* 1) Stables get a synthesised near-flat line — no network. */
+    if(cgId && STABLE_CGIDS.has(cgId)) return synthStable(tf);
+    /* 2) Binance first — vastly higher rate limits. */
+    const sym = cgId ? BINANCE_SYMBOL[cgId] : null;
+    if(sym){
+      try{ return await fetchBinance(sym, tf); }
+      catch(e){/* fall through to CG */}
+    }
+    /* 3) CoinGecko as last resort. */
+    if(cgId) return await fetchCoinGecko(cgId, tf);
+    throw new Error("no data source");
+  }
+
+  async function fetchOnce(token, tf){
+    const key=(token.cgId||token.sym||"?")+"|"+tf;
+    if(inflight.has(key)) return inflight.get(key);
+    const p=fetchSeries(token, tf).then(series=>{
+      /* If the user's display currency isn't USD, scale every point
+         so the latest value matches the wallet's current price (which
+         PhantomApp already computes in the right currency). */
+      const cgId = token.cgId;
+      const cur = (App.DATA.currency||"USD").toUpperCase();
+      if(cur!=="USD" && cgId && App.PRICES && App.PRICES[cgId] && series.length){
+        const now = App.PRICES[cgId].price;
+        const last = series[series.length-1].p;
+        if(now>0 && last>0){
+          const scale = now/last;
+          series = series.map(pt=>({t:pt.t, p:pt.p*scale}));
+        }
       }
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      const d=await r.json();
-      return (d.prices||[]).map(x=>({t:x[0],p:x[1]}));
-    })();
+      return series;
+    });
     inflight.set(key,p);
     p.finally(()=>setTimeout(()=>inflight.delete(key),200));
     return p;
@@ -209,10 +307,9 @@
       els.loading.style.display="flex";
     }
 
-    /* Single attempt — no fallback ladder. Aggressive retries were
-       burning through the rate limit and leaving every tab broken. */
+    /* Single attempt. Router picks Binance / stable synth / CoinGecko. */
     try{
-      const series = await fetchOnce(t.cgId, cfg.days);
+      const series = await fetchOnce(t, state.tf);
       if(myId!==fetchId) return;
       if(series && series.length){
         chartCache.set(cacheKey,series);
