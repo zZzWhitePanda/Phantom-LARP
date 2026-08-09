@@ -57,7 +57,34 @@
     marketCap:null,
   };
 
-  const chartCache=new Map();  /* `${cgId}|${days}` → series */
+  /* ---------- cache + rate-limit guard ----------
+     CoinGecko's public free tier throttles hard (~10-30 req/min).
+     - In-memory chart cache survives timeframe switches within a
+       session; localStorage cache with a 20-minute TTL survives page
+       reloads so LO doesn't have to re-fetch everything after F5.
+     - inflight dedupes concurrent requests for the same URL so
+       spamming the same pill doesn't stack requests.
+     - cooldownUntil holds a wall-clock time after which we're
+       allowed to hit the network again after a 429. Chart requests
+       are skipped entirely while a cooldown is active. */
+  const chartCache=new Map();
+  const inflight=new Map();
+  let cooldownUntil=0;
+  const CHART_TTL_MS=20*60*1000;
+  const CHART_LS_PREFIX="phantom-chart-";
+
+  function loadLocal(key){
+    try{
+      const raw=localStorage.getItem(CHART_LS_PREFIX+key);
+      if(!raw) return null;
+      const {ts,data}=JSON.parse(raw);
+      if(Date.now()-ts>CHART_TTL_MS) return null;
+      return data;
+    }catch(e){return null;}
+  }
+  function saveLocal(key,data){
+    try{localStorage.setItem(CHART_LS_PREFIX+key,JSON.stringify({ts:Date.now(),data}));}catch(e){}
+  }
 
   /* ---------- open / close ---------- */
   function open(idx){
@@ -127,13 +154,28 @@
   let fetchId=0;
 
   async function fetchOnce(cgId, days){
+    const key=cgId+"|"+days;
+    if(inflight.has(key)) return inflight.get(key);
+    if(Date.now()<cooldownUntil){
+      const wait=Math.ceil((cooldownUntil-Date.now())/1000);
+      const err=new Error("cooldown"); err.cooldown=wait; throw err;
+    }
     const cur=(App.DATA.currency||"USD").toLowerCase();
     const url=`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(cgId)}/market_chart?vs_currency=${cur}&days=${days}`;
     const headers=App.DATA.cgKey?{"x-cg-demo-api-key":App.DATA.cgKey}:{};
-    const r=await fetch(url,{headers});
-    if(!r.ok) throw new Error("chart "+r.status);
-    const d=await r.json();
-    return (d.prices||[]).map(p=>({t:p[0],p:p[1]}));
+    const p=(async()=>{
+      const r=await fetch(url,{headers});
+      if(r.status===429){
+        cooldownUntil=Date.now()+60*1000;    /* park for a minute */
+        const err=new Error("rate-limited"); err.cooldown=60; throw err;
+      }
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const d=await r.json();
+      return (d.prices||[]).map(x=>({t:x[0],p:x[1]}));
+    })();
+    inflight.set(key,p);
+    p.finally(()=>setTimeout(()=>inflight.delete(key),200));
+    return p;
   }
 
   async function loadChart(){
@@ -141,6 +183,7 @@
     const myId=++fetchId;
     if(!t.cgId){
       state.series=[];
+      els.empty.textContent="Chart data unavailable for this token.";
       els.empty.style.display="flex";
       els.chart.style.display="none";
       els.loading.style.display="none";
@@ -152,60 +195,69 @@
     els.chart.style.display="";
     const cfg=TIMEFRAMES[state.tf];
     const cacheKey=`${t.cgId}|${cfg.days}`;
-    if(chartCache.has(cacheKey)){
-      state.series = chartCache.get(cacheKey);
+
+    /* Warm from the in-memory cache first, then the persisted cache. */
+    let cached = chartCache.get(cacheKey) || loadLocal(cacheKey);
+    if(cached){
+      chartCache.set(cacheKey,cached);
+      state.series = cached;
       els.loading.style.display="none";
       drawChart();
     }else{
-      /* Clear stale data so a previous timeframe can't linger, and
-         show the spinner while the new data is on the way. */
       state.series=[];
       drawChart();
       els.loading.style.display="flex";
     }
 
-    /* CoinGecko's free tier occasionally rejects certain windows
-       (rate limits, plan restrictions). Try the requested days first,
-       then fall back to progressively smaller windows so 1Y and ALL
-       still light up something usable. */
-    const attempts = cfg.days==="max" ? ["max",3650,1825,365]
-                   : cfg.days===365   ? [365,180,90]
-                   : [cfg.days];
-
-    let series=null, lastErr=null;
-    for(const days of attempts){
-      try{
-        series = await fetchOnce(t.cgId, days);
-        if(myId!==fetchId) return;               /* superseded */
-        if(series && series.length) break;
-      }catch(e){lastErr=e;}
+    /* Single attempt — no fallback ladder. Aggressive retries were
+       burning through the rate limit and leaving every tab broken. */
+    try{
+      const series = await fetchOnce(t.cgId, cfg.days);
       if(myId!==fetchId) return;
-    }
-
-    if(myId!==fetchId) return;
-    els.loading.style.display="none";
-    if(series && series.length){
-      chartCache.set(cacheKey,series);
-      state.series = series;
+      if(series && series.length){
+        chartCache.set(cacheKey,series);
+        saveLocal(cacheKey,series);
+        state.series = series;
+      }
+      els.loading.style.display="none";
       drawChart();
-    }else if(!state.series.length){
-      els.empty.textContent = "Couldn't load chart data — try again in a moment.";
-      els.empty.style.display="flex";
-      els.chart.style.display="none";
+    }catch(e){
+      if(myId!==fetchId) return;
+      els.loading.style.display="none";
+      /* Only surface an error if we don't already have SOMETHING to
+         show. If cache warmed us up, keep displaying it silently. */
+      if(!state.series.length){
+        if(e && e.cooldown){
+          els.empty.textContent=`Rate limit hit — retry in ~${e.cooldown}s.`;
+        }else{
+          els.empty.textContent="Couldn't load chart data — try again in a moment.";
+        }
+        els.empty.style.display="flex";
+        els.chart.style.display="none";
+      }
     }
     loadMarketCap(t.cgId);
   }
   function sliceForTF(series){return series;}
+  const capCache=new Map();
   async function loadMarketCap(id){
+    if(Date.now()<cooldownUntil) return;      /* don't stack requests when cooling */
+    const cached=capCache.get(id);
+    if(cached && Date.now()-cached.ts < 5*60*1000){
+      els.cap.textContent = `${App.curSym()}${fmtCap(cached.cap)} market cap`;
+      return;
+    }
     try{
       const cur=(App.DATA.currency||"USD").toLowerCase();
       const url=`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=${cur}&include_market_cap=true`;
       const headers=App.DATA.cgKey?{"x-cg-demo-api-key":App.DATA.cgKey}:{};
       const r=await fetch(url,{headers});
-      if(!r.ok) throw 0;
+      if(r.status===429){cooldownUntil=Date.now()+60*1000;return;}
+      if(!r.ok) return;
       const d=await r.json();
       const cap=d[id] && d[id][cur+"_market_cap"];
       if(cap){
+        capCache.set(id,{cap,ts:Date.now()});
         els.cap.textContent = `${App.curSym()}${fmtCap(cap)} market cap`;
       }
     }catch(e){}
