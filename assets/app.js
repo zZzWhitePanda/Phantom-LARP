@@ -31,8 +31,6 @@ const DEFAULT_DATA = {
     {sym:"SOL",  name:"Solana",    cgId:"solana",   amount:"0.02504", v:true},
     {sym:"USDT", name:"Tether USD",cgId:"tether",   amount:"0.72",    v:true},
     {sym:"USDC", name:"USDC",      cgId:"usd-coin", amount:"0.27218", v:true},
-    {sym:"DOGE", name:"Moon Doge", price:0.0000091, amount:"1",       v:false},
-    {sym:"HAT",  name:"Wizard Hat",price:0.0000004, amount:"1",       v:false},
   ],
   perps:[
     {sym:"BTC", lev:"40x", chg:"+0.25%", dir:"up"},
@@ -52,9 +50,8 @@ const DEFAULT_DATA = {
   trending:[
     {sym:"SOL",  name:"Solana",   sub:"SOL",  price:"$77.42",  chg:"+4.8%",  dir:"up"},
     {sym:"ETH",  name:"Ethereum", sub:"ETH",  price:"$1,894",  chg:"+2.1%",  dir:"up"},
-    {sym:"DOGE", name:"Moon Doge",sub:"DOGE", price:"$0.0031", chg:"+18.4%", dir:"up"},
     {sym:"USDC", name:"USD Coin", sub:"USDC", price:"$1.00",   chg:"0.0%",   dir:"up"},
-    {sym:"HAT",  name:"Wizard Hat", sub:"HAT",  price:"$0.0009", chg:"-6.2%",  dir:"down"},
+    {sym:"USDT", name:"Tether",   sub:"USDT", price:"$1.00",   chg:"0.0%",   dir:"up"},
   ]
 };
 

@@ -24,7 +24,8 @@
   const els={
     icon:$("tkIcon"), name:$("tkName"), price:$("tkPrice"),
     change:$("tkChange"), scrubLabel:$("tkScrubLabel"),
-    chartWrap:$("tkChartWrap"), chart:$("tkChart"), empty:$("tkChartEmpty"),
+    chartWrap:$("tkChartWrap"), chart:$("tkChart"),
+    empty:$("tkChartEmpty"), loading:$("tkChartLoading"),
     pills:$("tkPills"),
     posIco:$("tkPosIco"), posSym:$("tkPosSym"), posName:$("tkPosName"),
     posQty:$("tkPosQty"), posVal:$("tkPosVal"), posDelta:$("tkPosDelta"),
@@ -124,6 +125,17 @@
   /* Bump a request id every time a fetch kicks off so late responses
      from a previous timeframe can't overwrite the current one. */
   let fetchId=0;
+
+  async function fetchOnce(cgId, days){
+    const cur=(App.DATA.currency||"USD").toLowerCase();
+    const url=`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(cgId)}/market_chart?vs_currency=${cur}&days=${days}`;
+    const headers=App.DATA.cgKey?{"x-cg-demo-api-key":App.DATA.cgKey}:{};
+    const r=await fetch(url,{headers});
+    if(!r.ok) throw new Error("chart "+r.status);
+    const d=await r.json();
+    return (d.prices||[]).map(p=>({t:p[0],p:p[1]}));
+  }
+
   async function loadChart(){
     const t=state.token;
     const myId=++fetchId;
@@ -131,6 +143,7 @@
       state.series=[];
       els.empty.style.display="flex";
       els.chart.style.display="none";
+      els.loading.style.display="none";
       els.cap.textContent="Market cap unavailable";
       drawChart();
       return;
@@ -141,30 +154,44 @@
     const cacheKey=`${t.cgId}|${cfg.days}`;
     if(chartCache.has(cacheKey)){
       state.series = chartCache.get(cacheKey);
+      els.loading.style.display="none";
       drawChart();
     }else{
-      /* Clear so stale data from a previous timeframe doesn't linger
-         (this was the reason ALL sometimes showed the previous chart). */
+      /* Clear stale data so a previous timeframe can't linger, and
+         show the spinner while the new data is on the way. */
       state.series=[];
       drawChart();
+      els.loading.style.display="flex";
     }
-    try{
-      const cur=(App.DATA.currency||"USD").toLowerCase();
-      const url=`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(t.cgId)}/market_chart?vs_currency=${cur}&days=${cfg.days}`;
-      const headers=App.DATA.cgKey?{"x-cg-demo-api-key":App.DATA.cgKey}:{};
-      const r=await fetch(url,{headers});
-      if(!r.ok) throw new Error("chart "+r.status);
-      const d=await r.json();
-      if(myId!==fetchId) return;                 /* superseded by a newer click */
-      const series=(d.prices||[]).map(p=>({t:p[0],p:p[1]}));
+
+    /* CoinGecko's free tier occasionally rejects certain windows
+       (rate limits, plan restrictions). Try the requested days first,
+       then fall back to progressively smaller windows so 1Y and ALL
+       still light up something usable. */
+    const attempts = cfg.days==="max" ? ["max",3650,1825,365]
+                   : cfg.days===365   ? [365,180,90]
+                   : [cfg.days];
+
+    let series=null, lastErr=null;
+    for(const days of attempts){
+      try{
+        series = await fetchOnce(t.cgId, days);
+        if(myId!==fetchId) return;               /* superseded */
+        if(series && series.length) break;
+      }catch(e){lastErr=e;}
+      if(myId!==fetchId) return;
+    }
+
+    if(myId!==fetchId) return;
+    els.loading.style.display="none";
+    if(series && series.length){
       chartCache.set(cacheKey,series);
       state.series = series;
       drawChart();
-    }catch(e){
-      if(myId===fetchId && !state.series.length){
-        els.empty.style.display="flex";
-        els.chart.style.display="none";
-      }
+    }else if(!state.series.length){
+      els.empty.textContent = "Couldn't load chart data — try again in a moment.";
+      els.empty.style.display="flex";
+      els.chart.style.display="none";
     }
     loadMarketCap(t.cgId);
   }
@@ -282,7 +309,9 @@
 
     let scrubLine="";
     if(scrubbing){
-      scrubLine=`<line class="tk-chart-scrub" x1="${dot.x.toFixed(2)}" y1="${PAD_Y}" x2="${dot.x.toFixed(2)}" y2="${VB_H-PAD_Y}"/>`;
+      /* Scrub line drops from the top of the chart and stops at the
+         horizontal open line — never dips below it. */
+      scrubLine=`<line class="tk-chart-scrub" x1="${dot.x.toFixed(2)}" y1="${PAD_Y}" x2="${dot.x.toFixed(2)}" y2="${openY.toFixed(2)}"/>`;
     }
     svg.innerHTML =
       `<line class="tk-chart-open" x1="${PAD_X}" y1="${openY.toFixed(2)}" x2="${VB_W-PAD_X}" y2="${openY.toFixed(2)}"/>`+
