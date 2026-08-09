@@ -23,7 +23,7 @@
 
   const els={
     icon:$("tkIcon"), name:$("tkName"), price:$("tkPrice"),
-    change:$("tkChange"), scrubTime:$("tkScrubTime"),
+    change:$("tkChange"), scrubLabel:$("tkScrubLabel"),
     chartWrap:$("tkChartWrap"), chart:$("tkChart"), empty:$("tkChartEmpty"),
     pills:$("tkPills"),
     posIco:$("tkPosIco"), posSym:$("tkPosSym"), posName:$("tkPosName"),
@@ -32,17 +32,16 @@
     cap:$("tkCap"), trade:$("tkTrade"),
   };
 
-  /* CoinGecko timeframe → days argument. LIVE and 1D both hit days=1
-     (auto 5-minute interval); LIVE just picks a fresher last-N-hours
-     window from that same payload so the two feel meaningfully
-     different without hammering the API. */
+  /* CoinGecko timeframe → days argument. All timeframes use the raw
+     resolution CoinGecko returns for that window; we don't sub-slice
+     LIVE anymore so scrubbing has the same fine granularity as 1D. */
   const TIMEFRAMES = {
-    live:{days:1,  windowHours:2,  fmt:t=>fmtTime(t)},
-    "1d":{days:1,               fmt:t=>fmtTime(t)},
-    "1w":{days:7,               fmt:t=>fmtDateTime(t)},
-    "1m":{days:30,              fmt:t=>fmtDate(t)},
-    "1y":{days:365,             fmt:t=>fmtDate(t)},
-    all:{days:"max",            fmt:t=>fmtDate(t)},
+    live:{days:1,   fmt:t=>fmtTime(t)},
+    "1d":{days:1,   fmt:t=>fmtTime(t)},
+    "1w":{days:7,   fmt:t=>fmtDateTime(t)},
+    "1m":{days:30,  fmt:t=>fmtDate(t)},
+    "1y":{days:365, fmt:t=>fmtDate(t)},
+    all:{days:"max",fmt:t=>fmtDate(t)},
   };
 
   const state={
@@ -65,7 +64,7 @@
     highlightPill();
     fillHeader();
     fillPositions();
-    els.scrubTime.innerHTML="&nbsp;";
+    els.scrubLabel.classList.remove("on");
     sheet.classList.add("open");
     loadChart();
   }
@@ -90,20 +89,15 @@
     const chg   = App.PRICES && t.cgId && App.PRICES[t.cgId] ? App.PRICES[t.cgId].chg : 0;
     updatePriceHeader(price, chg);
   }
-  function updatePriceHeader(price, chgPct, timestamp){
-    const t=state.token;
+  function updatePriceHeader(price, chgPct){
+    /* Price stays white regardless of direction; only the change line
+       flips red/green. Timestamp label is handled separately as a
+       floating tag above the scrub line. */
     els.price.textContent = `${App.curSym()}${App.fmt(price)}`;
     const up = chgPct>=0;
     const absChange = Math.abs(price*(chgPct/100));
     els.change.textContent = `${up?"+":"-"}${App.curSym()}${App.fmt(absChange)} (${up?"+":"-"}${Math.abs(chgPct).toFixed(2)}%)`;
     els.change.className = "tk-change "+(up?"up":"down");
-    els.price.style.color = up ? "#fff" : "var(--red)";
-    if(timestamp){
-      const cfg=TIMEFRAMES[state.tf]||TIMEFRAMES["1w"];
-      els.scrubTime.textContent = cfg.fmt(new Date(timestamp));
-    }else{
-      els.scrubTime.innerHTML="&nbsp;";
-    }
   }
   function fillPositions(){
     const t=state.token;
@@ -162,12 +156,7 @@
     /* Market cap in a separate call (small, cached). */
     loadMarketCap(t.cgId);
   }
-  function sliceForTF(series){
-    const cfg=TIMEFRAMES[state.tf];
-    if(!cfg.windowHours) return series;
-    const cutoff=Date.now() - cfg.windowHours*3600*1000;
-    return series.filter(p=>p.t>=cutoff);
-  }
+  function sliceForTF(series){return series;}
   async function loadMarketCap(id){
     try{
       const cur=(App.DATA.currency||"USD").toLowerCase();
@@ -206,42 +195,66 @@
     });
     return {pts,min,max,open};
   }
-  function pathFor(pts){
+  /* Smooth path via Catmull-Rom to Bezier conversion. Tension keeps
+     it close to the data (0 = straight lines, 1 = very loose). */
+  function smoothPath(pts, tension){
     if(!pts.length) return "";
-    return pts.reduce((s,p,i)=> s + (i?"L":"M")+p.x.toFixed(2)+" "+p.y.toFixed(2), "");
+    if(pts.length===1) return `M${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    const t = tension==null?0.5:tension;
+    let d=`M${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    for(let i=0;i<pts.length-1;i++){
+      const p0=pts[i-1]||pts[i];
+      const p1=pts[i];
+      const p2=pts[i+1];
+      const p3=pts[i+2]||pts[i+1];
+      const cp1x=p1.x + (p2.x - p0.x) * t / 6;
+      const cp1y=p1.y + (p2.y - p0.y) * t / 6;
+      const cp2x=p2.x - (p3.x - p1.x) * t / 6;
+      const cp2y=p2.y - (p3.y - p1.y) * t / 6;
+      d+=`C${cp1x.toFixed(2)} ${cp1y.toFixed(2)},${cp2x.toFixed(2)} ${cp2y.toFixed(2)},${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+    }
+    return d;
   }
   function drawChart(){
     const svg=els.chart;
     const {pts,min,max,open}=project(state.series);
     if(!pts.length){svg.innerHTML="";return;}
-    /* Determine current (or scrubbed) point to decide green vs red. */
+    /* The chart line stays green everywhere — direction only affects
+       the header's change label. */
     const curI = state.scrubI>=0 ? state.scrubI : pts.length-1;
-    const curP = pts[curI].p;
-    const isPos = curP >= open;
+    const dot = pts[curI];
     const openY = PAD_Y + (1-(open-min)/(max-min))*(VB_H-PAD_Y*2);
-    /* Split into past (0..curI) and future (curI..end). */
     const past = pts.slice(0, curI+1);
     const future = pts.slice(curI);
-    const pastCls = isPos ? "tk-chart-line past" : "tk-chart-line past neg";
-    const dot = pts[curI];
-    const dotCls = isPos ? "tk-chart-dot" : "tk-chart-dot neg";
     let scrubLine="";
     if(state.scrubI>=0){
-      scrubLine=`<line class="tk-chart-scrub" x1="${dot.x}" y1="${PAD_Y}" x2="${dot.x}" y2="${VB_H-PAD_Y}"/>`;
+      scrubLine=`<line class="tk-chart-scrub" x1="${dot.x.toFixed(2)}" y1="${PAD_Y}" x2="${dot.x.toFixed(2)}" y2="${VB_H-PAD_Y}"/>`;
     }
     svg.innerHTML =
       `<line class="tk-chart-open" x1="${PAD_X}" y1="${openY.toFixed(2)}" x2="${VB_W-PAD_X}" y2="${openY.toFixed(2)}"/>`+
-      `<path class="tk-chart-line future" d="${pathFor(future)}"/>`+
-      `<path class="${pastCls}" d="${pathFor(past)}"/>`+
+      `<path class="tk-chart-line future" d="${smoothPath(future)}"/>`+
+      `<path class="tk-chart-line past" d="${smoothPath(past)}"/>`+
       scrubLine+
-      `<circle class="${dotCls}" cx="${dot.x}" cy="${dot.y}" r="5"/>`;
-    /* Update the header if we're scrubbing; if live, refresh from current data. */
+      `<circle class="tk-chart-dot" cx="${dot.x.toFixed(2)}" cy="${dot.y.toFixed(2)}" r="5"/>`;
+
+    /* Header: current or scrubbed price against the period open. */
+    const pct = open>0 ? ((dot.p-open)/open)*100 : 0;
+    updatePriceHeader(dot.p, pct);
+
+    /* Floating scrub label above the vertical line. Only visible while
+       scrubbing. Position uses the SVG's proportional x → wrap pixels. */
     if(state.scrubI>=0){
-      const pctFromOpen = ((curP-open)/open)*100;
-      updatePriceHeader(curP, pctFromOpen, dot.t);
+      const wrapW = els.chartWrap.clientWidth;
+      const px = (dot.x/VB_W)*wrapW;
+      const cfg=TIMEFRAMES[state.tf]||TIMEFRAMES["1w"];
+      els.scrubLabel.textContent = cfg.fmt(new Date(dot.t));
+      els.scrubLabel.classList.add("on");
+      /* Clamp so the label stays fully inside the wrap. */
+      const halfW = els.scrubLabel.offsetWidth/2;
+      const left = Math.max(halfW+4, Math.min(wrapW - halfW - 4, px));
+      els.scrubLabel.style.left = left + "px";
     }else{
-      const pct = ((curP-open)/open)*100;
-      updatePriceHeader(curP, pct);
+      els.scrubLabel.classList.remove("on");
     }
   }
 
@@ -269,7 +282,7 @@
     scrubbing=false;
     state.scrubI=-1;
     drawChart();
-    els.scrubTime.innerHTML="&nbsp;";
+    els.scrubLabel.classList.remove("on");
   }
   wrap.addEventListener("pointerup",endScrub);
   wrap.addEventListener("pointercancel",endScrub);
