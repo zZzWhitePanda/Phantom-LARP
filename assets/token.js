@@ -310,8 +310,8 @@
     let scrubLine="";
     if(scrubbing){
       /* Scrub line drops from the top of the chart and stops at the
-         horizontal open line — never dips below it. */
-      scrubLine=`<line class="tk-chart-scrub" x1="${dot.x.toFixed(2)}" y1="${PAD_Y}" x2="${dot.x.toFixed(2)}" y2="${openY.toFixed(2)}"/>`;
+         dot on the green price line — never continues past it. */
+      scrubLine=`<line class="tk-chart-scrub" x1="${dot.x.toFixed(2)}" y1="${PAD_Y}" x2="${dot.x.toFixed(2)}" y2="${dot.y.toFixed(2)}"/>`;
     }
     svg.innerHTML =
       `<line class="tk-chart-open" x1="${PAD_X}" y1="${openY.toFixed(2)}" x2="${VB_W-PAD_X}" y2="${openY.toFixed(2)}"/>`+
