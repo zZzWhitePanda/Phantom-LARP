@@ -108,9 +108,12 @@
     const t=currentToken();
     addrTitle.textContent = t ? t.sym : "";
     addrInput.value = state.address || "";
-    addrInput.placeholder = isEthLike(t) ? "0x…" : "username or address";
+    /* Same placeholder for every token — validation is still per-network. */
+    addrInput.placeholder = "username or address";
     addrErr.textContent="";
-    addrNext.classList.remove("on");
+    /* If we came back from Amount with a valid address, keep Next enabled. */
+    const v=state.address ? validateAddress(t,state.address) : {ok:false};
+    addrNext.classList.toggle("on", !!v.ok);
     setTimeout(()=>addrInput.focus(),120);
   }
   addrInput.addEventListener("input",()=>{
@@ -129,20 +132,40 @@
 
   /* ============ PAGE 3: ENTER AMOUNT ============ */
   const amtToEl    = document.getElementById("amtTo");
-  const amtValEl   = document.getElementById("amtVal");
+  const amtInput   = document.getElementById("amtInput");
+  const amtDisplay = document.getElementById("amtDisplay");
   const amtSymEl   = document.getElementById("amtSym");
   const amtUsdEl   = document.getElementById("amtUsd");
   const amtAvailEl = document.getElementById("amtAvail");
   const amtSwapEl  = document.getElementById("amtSwap");
-  const amtDoneEl  = document.getElementById("amtDone");
   const amtMaxEl   = document.getElementById("amtMax");
-  const numpadEl   = document.getElementById("numpad");
+  const amtNextEl  = document.getElementById("amtNext");
 
   function renderAmountPage(){
-    const t=currentToken();
     amtToEl.innerHTML = `To: <b>${shortAddr(state.address)}</b>`;
+    /* Set the input to the current amount (or 0). We keep state.amount as
+       the string source of truth so back-navigation preserves it. */
+    amtInput.value = state.amount || "0";
     updateAmountDisplay();
+    /* Deliberately do NOT auto-focus — user must tap the amount to open
+       their phone's native numeric keypad. */
+    amtInput.blur();
   }
+
+  function sanitizeAmount(raw){
+    /* Digits + at most one dot. Strip everything else so a paste can't
+       inject letters/symbols. */
+    let s=(raw||"").replace(/[^0-9.]/g,"");
+    const firstDot=s.indexOf(".");
+    if(firstDot!==-1){
+      s = s.slice(0,firstDot+1) + s.slice(firstDot+1).replace(/\./g,"");
+    }
+    /* Trim leading zeros unless it's "0" or "0." */
+    if(s.length>1 && s[0]==="0" && s[1]!==".") s=s.replace(/^0+/,"")||"0";
+    if(s.length>16) s=s.slice(0,16);
+    return s;
+  }
+
   function amountAsTokens(){
     const t=currentToken();if(!t) return 0;
     const raw=parseFloat(state.amount||"0")||0;
@@ -159,8 +182,9 @@
   }
   function updateAmountDisplay(){
     const t=currentToken();
-    const shown = state.amount || "0";
-    amtValEl.textContent = shown;
+    /* Grow the input to fit its content so the SOL/USD label sits right
+       next to the number instead of miles to the right. */
+    amtInput.size = Math.max(1,(amtInput.value||"0").length);
     if(state.inUsd){
       amtSymEl.textContent = "USD";
       amtUsdEl.textContent = `~${App.fmtQty(amountAsTokens())} ${t.sym}`;
@@ -170,40 +194,56 @@
     }
     const bal=Number(t.amount)||0;
     amtAvailEl.textContent = `${App.fmtQtyShort(bal)} ${t.sym}`;
-    /* enable Done only if amount > 0 AND doesn't exceed balance */
     const tokAmt=amountAsTokens();
     const ok = tokAmt>0 && tokAmt<=bal+1e-12;
-    amtDoneEl.classList.toggle("on",ok);
-    amtDoneEl.disabled=!ok;
-    amtDoneEl.style.opacity=ok?"1":".4";
+    amtNextEl.classList.toggle("on",ok);
   }
-  amtSwapEl.addEventListener("click",()=>{
+
+  /* Tap anywhere on the big "1000 SOL" row to focus the input and open
+     the native numeric keyboard. iOS/Android will show its own pad. */
+  amtDisplay.addEventListener("click",e=>{
+    if(e.target===amtSwapEl||amtSwapEl.contains(e.target)) return;
+    amtInput.focus();
+    /* Move caret to end so typing appends. */
+    const v=amtInput.value;amtInput.setSelectionRange(v.length,v.length);
+  });
+  amtInput.addEventListener("input",()=>{
+    const cleaned=sanitizeAmount(amtInput.value);
+    if(cleaned!==amtInput.value) amtInput.value=cleaned;
+    state.amount = (cleaned==="0"||cleaned==="") ? "" : cleaned;
+    /* Ensure the field always shows something visible. */
+    if(!amtInput.value) amtInput.value="0";
+    updateAmountDisplay();
+  });
+  amtInput.addEventListener("focus",()=>{
+    /* On focus, if it's just "0" clear it so the user can type freely. */
+    if(amtInput.value==="0") amtInput.value="";
+    updateAmountDisplay();
+  });
+  amtInput.addEventListener("blur",()=>{
+    if(!amtInput.value) amtInput.value="0";
+    updateAmountDisplay();
+  });
+
+  amtSwapEl.addEventListener("click",e=>{
+    e.stopPropagation();
     state.inUsd=!state.inUsd;
     state.amount="";
+    amtInput.value="0";
     updateAmountDisplay();
   });
   amtMaxEl.addEventListener("click",()=>{
     const t=currentToken();const bal=Number(t.amount)||0;
     state.inUsd=false;
-    state.amount = bal>0 ? String(bal) : "";
+    state.amount = bal>0 ? trimFloat(bal) : "";
+    amtInput.value = state.amount || "0";
     updateAmountDisplay();
   });
-  /* numpad */
-  numpadEl.addEventListener("click",e=>{
-    const btn=e.target.closest("button[data-key]");if(!btn) return;
-    const k=btn.dataset.key;
-    if(k==="back"){
-      state.amount = state.amount.slice(0,-1);
-    }else if(k==="."){
-      if(!state.amount.includes(".")) state.amount = (state.amount||"0")+".";
-    }else{
-      if(state.amount==="0" && k!==".") state.amount="";
-      if(state.amount.length<16) state.amount += k;
-    }
-    updateAmountDisplay();
-  });
-  amtDoneEl.addEventListener("click",()=>{
-    if(amtDoneEl.disabled) return;
+
+  amtNextEl.addEventListener("click",()=>{
+    if(!amtNextEl.classList.contains("on")) return;
+    /* Dismiss the native keyboard, then advance. */
+    amtInput.blur();
     renderSummaryPage();
     goto("summary");
   });
@@ -253,14 +293,15 @@
   const sendingToEl = document.getElementById("sendingTo");
   function renderSendingPage(){
     const t=currentToken();
-    sendingToEl.innerHTML = `<b>${App.fmtQty(amountAsTokens())} ${t.sym}</b> to <b>${shortAddr(state.address)}</b>`;
+    sendingToEl.innerHTML = `<b class="nowrap">${App.fmtQty(amountAsTokens())} ${t.sym}</b> to <b class="nowrap">${shortAddr(state.address)}</b>`;
   }
 
   /* ============ PAGE 6: SENT ============ */
   const sentToEl = document.getElementById("sentTo");
   function renderSentPage(){
     const t=currentToken();
-    sentToEl.innerHTML = `<b>${App.fmtQty(amountAsTokens())} ${t.sym}</b> was successfully sent to <b>${shortAddr(state.address)}</b>`;
+    /* Break line before the address so it never splits mid-key. */
+    sentToEl.innerHTML = `<b class="nowrap">${App.fmtQty(amountAsTokens())} ${t.sym}</b> was successfully sent to<br><b class="nowrap">${shortAddr(state.address)}</b>`;
     /* trigger a home refresh so the new balance animates in */
     setTimeout(()=>{try{App.doRefresh&&App.doRefresh();}catch(e){}},50);
   }

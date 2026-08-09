@@ -200,8 +200,10 @@
           <button class="send-next" id="addrNext" type="button">Next</button>
         </div>
         <div class="addr-wrap">
-          <div class="addr-label">To:</div>
-          <input class="addr-input" id="addrInput" placeholder="username or address" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <div class="addr-row">
+            <span class="addr-prefix">To:</span>
+            <input class="addr-input" id="addrInput" type="text" placeholder="username or address" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+          </div>
           <div class="addr-err" id="addrErr"></div>
         </div>
       </div>
@@ -211,36 +213,26 @@
         <div class="send-topbar">
           <button class="send-back" data-send-back="address"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Enter Amount</span></button>
           <span></span>
-          <span style="width:24px"></span>
+          <button class="send-next" id="amtNext" type="button">Next</button>
         </div>
-        <div class="amount-to" id="amtTo">To: <b></b></div>
+        <div class="amount-to-row">
+          <span id="amtTo">To: <b></b></span>
+          <button class="amount-edit" data-send-back="address" aria-label="Edit address"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M14.5 5.5l4 4"/></svg></button>
+        </div>
         <div class="amount-mid">
-          <div class="amount-big">
-            <span class="val" id="amtVal">0</span>
+          <div class="amount-big" id="amtDisplay">
+            <input class="amount-input" id="amtInput" type="text" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" value="0" size="1" autocomplete="off">
             <span class="sym" id="amtSym">SOL</span>
             <button class="amount-swap" id="amtSwap" type="button" aria-label="Swap currency"><svg viewBox="0 0 24 24"><path d="M7 4v14M4 15l3 3 3-3M17 20V6M14 9l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
           <div class="amount-usd" id="amtUsd">~$0.00</div>
         </div>
-        <div class="amount-avail">
-          <span>Available To Send</span>
-          <b id="amtAvail">0 SOL</b>
+        <div class="amount-bottom">
+          <div>
+            <div class="amount-lbl">Available To Send</div>
+            <b id="amtAvail">0 SOL</b>
+          </div>
           <button class="amount-max" id="amtMax" type="button">Max</button>
-        </div>
-        <div class="numpad" id="numpad">
-          <button data-key="1">1</button>
-          <button data-key="2">2<small>ABC</small></button>
-          <button data-key="3">3<small>DEF</small></button>
-          <button data-key="4">4<small>GHI</small></button>
-          <button data-key="5">5<small>JKL</small></button>
-          <button data-key="6">6<small>MNO</small></button>
-          <button data-key="7">7<small>PQRS</small></button>
-          <button data-key="8">8<small>TUV</small></button>
-          <button data-key="9">9<small>WXYZ</small></button>
-          <button data-key=".">.</button>
-          <button data-key="0">0</button>
-          <button data-key="back" aria-label="Backspace">&#9003;</button>
-          <div class="done-row"><button class="done" id="amtDone" type="button">Done</button></div>
         </div>
       </div>
 
