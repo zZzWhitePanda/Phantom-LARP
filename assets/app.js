@@ -119,7 +119,10 @@ function renderTokens(){
       <div class="qty">${(t.amount!=null?t.amount:0)} ${t.sym}</div></div>
       <div class="rt"><div class="val">${curSym()}${fmt(val)}</div>
       <div class="delta ${dir}">${dv>=0?"+":"-"}${curSym()}${fmt(Math.abs(dv))}</div></div>`;
-    row.addEventListener("click",()=>pulse(row));
+    row.addEventListener("click",()=>{
+      pulse(row);
+      if(window.TokenDetail) window.TokenDetail.open(i);
+    });
     list.appendChild(row);
   });
   const a=document.getElementById("swapIcoA");if(a)a.outerHTML=ICONS.SOL;

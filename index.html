@@ -299,6 +299,66 @@
     </section>
 
     <!-- ============================================================
+         TOKEN DETAIL SHEET — opens when a token on the home screen
+         is tapped. Live chart, timeframes, position, market cap,
+         Trade CTA. Wired up in assets/token.js.
+         ============================================================ -->
+    <section class="token-sheet" id="tokenSheet">
+      <div class="tk-top">
+        <button class="tk-icon-btn" data-tk-close type="button" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="tk-btns">
+          <button class="tk-icon-btn" type="button" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.3-9.3-8.3C1 8.5 2.5 5 6 5c2 0 3 1.2 4 2.6C11 6.2 12 5 14 5c3.5 0 5 3.5 3.3 6.7C19 15.7 12 20 12 20z"/></svg></button>
+          <button class="tk-icon-btn" type="button" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5M5 20h14"/></svg></button>
+        </div>
+      </div>
+      <div class="tk-scroll">
+        <div class="tk-header">
+          <div class="tk-brand">
+            <span id="tkIcon"></span>
+          </div>
+          <div class="tk-name"><span id="tkName">Token</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="tk-price" id="tkPrice">$0.00</div>
+          <div class="tk-change up" id="tkChange"></div>
+          <div class="tk-scrub-time" id="tkScrubTime">&nbsp;</div>
+        </div>
+        <div class="tk-chart-wrap" id="tkChartWrap">
+          <svg id="tkChart" viewBox="0 0 400 260" preserveAspectRatio="none"></svg>
+          <div class="tk-chart-empty" id="tkChartEmpty" style="display:none;">Chart data unavailable for this token.</div>
+        </div>
+        <div class="tk-pills" id="tkPills">
+          <button class="tk-pill live" data-tf="live">LIVE</button>
+          <button class="tk-pill" data-tf="1d">1D</button>
+          <button class="tk-pill on" data-tf="1w">1W</button>
+          <button class="tk-pill" data-tf="1m">1M</button>
+          <button class="tk-pill" data-tf="1y">1Y</button>
+          <button class="tk-pill" data-tf="all">ALL</button>
+          <button class="tk-adj" type="button" aria-label="Adjust"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.5"/><path d="M7 9.5V20M7 4V3"/><circle cx="17" cy="16" r="2.5"/><path d="M17 13.5V4M17 18.5V21"/></svg></button>
+        </div>
+        <h3 class="tk-section">Your Positions</h3>
+        <button class="tk-pos" id="tkPos" type="button">
+          <span class="ico" id="tkPosIco"></span>
+          <div class="mid">
+            <div class="name"><span id="tkPosSym">ETH</span><span class="sub" id="tkPosName">Ethereum</span></div>
+            <div class="qty" id="tkPosQty">0</div>
+          </div>
+          <div class="rt">
+            <div class="val" id="tkPosVal">$0.00</div>
+            <div class="delta up" id="tkPosDelta">+$0.00</div>
+          </div>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="tk-chat">
+          <div class="lh">Live Chat <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="rh" id="tkChatHere">5 here</div>
+        </div>
+      </div>
+      <div class="tk-bottom">
+        <div class="tk-cap" id="tkCap">&mdash;</div>
+        <button class="tk-trade" id="tkTrade" type="button">Trade</button>
+      </div>
+    </section>
+
+    <!-- ============================================================
          TOKEN PICKER — shared by the Swap view (You Pay / You Receive).
          Wired up in assets/trade.js.
          ============================================================ -->
@@ -442,5 +502,6 @@
 <script src="assets/app.js"></script>
 <script src="assets/send.js"></script>
 <script src="assets/trade.js"></script>
+<script src="assets/token.js"></script>
 </body>
 </html>
