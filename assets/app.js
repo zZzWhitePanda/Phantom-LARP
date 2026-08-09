@@ -335,7 +335,7 @@ const pillsEl=document.getElementById("pills");
 let dx0=0,dxActive=false,dxMoved=0;
 pillsEl.addEventListener("pointerdown",e=>{dx0=e.clientX;dxActive=true;dxMoved=0;pillsEl.style.transition="none";try{pillsEl.setPointerCapture(e.pointerId);}catch(_){}});
 pillsEl.addEventListener("pointermove",e=>{if(!dxActive)return;dxMoved=e.clientX-dx0;pillsEl.style.transform="translateX("+(dxMoved*0.5)+"px)";});
-function pillsRelease(){if(!dxActive)return;dxActive=false;pillsEl.style.transition="transform .42s cubic-bezier(.2,1.35,.35,1)";pillsEl.style.transform="translateX(0)";}
+function pillsRelease(){if(!dxActive)return;dxActive=false;pillsEl.style.transition="transform .7s cubic-bezier(.2,1.35,.35,1)";pillsEl.style.transform="translateX(0)";}
 pillsEl.addEventListener("pointerup",pillsRelease);
 pillsEl.addEventListener("pointercancel",pillsRelease);
 pillsEl.addEventListener("click",e=>{if(Math.abs(dxMoved)>8){e.stopPropagation();e.preventDefault();}dxMoved=0;},true);
@@ -349,6 +349,7 @@ document.querySelectorAll(".fab-act").forEach(b=>b.addEventListener("click",e=>{
   const action=b.getAttribute("data-action");
   fabVeil.classList.remove("open");
   if(action==="send"&&window.SendFlow){window.SendFlow.open();}
+  else if(action==="trade"){showView("trade");}
 }));
 
 /* ---- pull to refresh (home) — iOS-style, ~2s minimum hold ----
@@ -409,7 +410,7 @@ function doRefresh(){
     },wait);
   });
 }
-window.PhantomApp={doRefresh,refreshUI,save,tokenPrice,fmt,fmtQty,fmtQtyShort,tokenIcon,curSym,get DATA(){return DATA;}};
+window.PhantomApp={doRefresh,refreshUI,save,tokenPrice,fmt,fmtQty,fmtQtyShort,tokenIcon,iconFor,curSym,showView,get DATA(){return DATA;},get PRICES(){return PRICES;}};
 
 /* ---- init ---- */
 function renderStatic(){renderPerps();renderPredictions();renderMarkets();renderTrending();}

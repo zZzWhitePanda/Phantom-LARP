@@ -116,24 +116,40 @@
         </div>
       </div>
 
-      <!-- TRADE -->
+      <!-- TRADE / SWAP -->
       <div class="view" id="view-trade">
         <h2 class="view-title">Swap</h2>
         <div class="swap-card">
           <div class="swap-row">
-            <div><div class="swap-label">You pay</div><div class="swap-amt">0.025</div><div class="swap-usd">&#8776; $1.94</div></div>
-            <div class="swap-token"><span class="ico" id="swapIcoA"></span>SOL &#9662;</div>
+            <div class="swap-left">
+              <div class="swap-label">You pay</div>
+              <input class="swap-amt" id="swapPayAmt" inputmode="decimal" placeholder="0" autocomplete="off">
+              <div class="swap-usd" id="swapPayUsd">~ $0.00</div>
+            </div>
+            <button class="swap-token" data-picker="pay" type="button">
+              <span class="ico" id="swapPayIco"></span>
+              <span id="swapPaySym">SOL</span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
           </div>
-          <div class="swap-arrow">&#8595;</div>
+          <button class="swap-arrow" id="swapFlip" type="button" aria-label="Swap sides">&#8645;</button>
           <div class="swap-row">
-            <div><div class="swap-label">You receive</div><div class="swap-amt">1.93</div><div class="swap-usd">&#8776; $1.93</div></div>
-            <div class="swap-token"><span class="ico" id="swapIcoB"></span>USDC &#9662;</div>
+            <div class="swap-left">
+              <div class="swap-label">You receive</div>
+              <input class="swap-amt" id="swapRecvAmt" inputmode="decimal" placeholder="0" autocomplete="off">
+              <div class="swap-usd" id="swapRecvUsd">~ $0.00</div>
+            </div>
+            <button class="swap-token" data-picker="receive" type="button">
+              <span class="ico" id="swapRecvIco"></span>
+              <span id="swapRecvSym">Cash</span>
+              <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
           </div>
         </div>
-        <div class="swap-meta"><span>Rate</span><b>1 SOL &#8776; 77.4 USDC</b></div>
+        <div class="swap-meta"><span>Rate</span><b id="swapRate">&mdash;</b></div>
         <div class="swap-meta"><span>Network fee</span><b>$0.001</b></div>
         <div class="swap-meta"><span>Provider</span><b>Phantom Swaps</b></div>
-        <button class="primary-btn">Review Order</button>
+        <button class="primary-btn" id="swapReview">Review Order</button>
       </div>
 
       <!-- PREDICT -->
@@ -281,6 +297,23 @@
       </div>
 
     </section>
+
+    <!-- ============================================================
+         TOKEN PICKER — shared by the Swap view (You Pay / You Receive).
+         Wired up in assets/trade.js.
+         ============================================================ -->
+    <section class="swap-picker" id="swapPicker">
+      <div class="picker-top">
+        <button class="picker-x" data-picker-close type="button" aria-label="Close">&#10005;</button>
+        <span class="picker-title" id="pickerTitle">You Pay</span>
+      </div>
+      <div class="picker-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
+        <input id="pickerSearch" placeholder="Search" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="picker-chips" id="pickerChips"></div>
+      <div class="picker-list" id="pickerList"></div>
+    </section>
   </div><!-- /app-main -->
 
   <div class="scrim" id="scrim"></div>
@@ -408,5 +441,6 @@
 
 <script src="assets/app.js"></script>
 <script src="assets/send.js"></script>
+<script src="assets/trade.js"></script>
 </body>
 </html>
