@@ -269,15 +269,15 @@
     goto("sending");
     /* Simulate broadcast */
     setTimeout(()=>{
-      /* Deduct amount from balance */
+      /* Persist the deduction so it survives reloads, but DO NOT re-render
+         the home view. The visible balance stays as-is until the user
+         pulls to refresh — matches real wallet behaviour. */
       const t=currentToken();
       const tokAmt=amountAsTokens();
       const bal=Number(t.amount)||0;
       const next=Math.max(0,bal-tokAmt);
-      /* Preserve original precision-ish */
       App.DATA.tokens[state.tokenIdx].amount = trimFloat(next);
       App.save();
-      App.refreshUI();
       renderSentPage();
       goto("sent");
     },2200);
@@ -302,8 +302,8 @@
     const t=currentToken();
     /* Break line before the address so it never splits mid-key. */
     sentToEl.innerHTML = `<b class="nowrap">${App.fmtQty(amountAsTokens())} ${t.sym}</b> was successfully sent to<br><b class="nowrap">${shortAddr(state.address)}</b>`;
-    /* trigger a home refresh so the new balance animates in */
-    setTimeout(()=>{try{App.doRefresh&&App.doRefresh();}catch(e){}},50);
+    /* No auto-refresh — the new balance only appears once the user pulls
+       down to refresh, exactly how the real wallet feels. */
   }
 
   /* ---- back / close wiring ---- */

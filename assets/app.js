@@ -351,29 +351,60 @@ document.querySelectorAll(".fab-act").forEach(b=>b.addEventListener("click",e=>{
   if(action==="send"&&window.SendFlow){window.SendFlow.open();}
 }));
 
-/* ---- pull to refresh (home) — iOS-style, ~2s minimum hold ---- */
+/* ---- pull to refresh (home) — iOS-style, ~2s minimum hold ----
+   Behavior:
+   - While the finger is dragging, transition is off so the tray tracks
+     1:1. The spinner element itself stays hidden (opacity 0) — no faint
+     preview during the pull.
+   - On release: transition comes back. If the pull passed threshold,
+     doRefresh() adds .spin which reveals the spinner and animates the
+     tray to its full height. If not, the tray glides back to 0.
+   - When the refresh finishes and the min-hold has elapsed, removing
+     .spin animates the tray closed instead of snapping. */
 const screenEl=document.getElementById("screen"),ptr=document.getElementById("ptr");
 let pStartY=null,pDist=0,pActive=false,refreshing=false;
 const MIN_REFRESH_MS=2000;
+const PULL_THRESHOLD=60;
 
-screenEl.addEventListener("touchstart",e=>{if(currentView==="home"&&screenEl.scrollTop<=0&&!refreshing){pStartY=e.touches[0].clientY;pActive=true;pDist=0;}},{passive:true});
-screenEl.addEventListener("touchmove",e=>{if(!pActive)return;pDist=e.touches[0].clientY-pStartY;if(pDist>0){const d=Math.min(pDist*0.5,80);ptr.style.height=d+"px";ptr.style.opacity=Math.min(d/56,1);}},{passive:true});
-screenEl.addEventListener("touchend",()=>{if(!pActive)return;pActive=false;if(pDist>64)doRefresh();else{ptr.style.height="";ptr.style.opacity="";}pDist=0;});
+screenEl.addEventListener("touchstart",e=>{
+  if(currentView==="home"&&screenEl.scrollTop<=0&&!refreshing){
+    pStartY=e.touches[0].clientY;pActive=true;pDist=0;
+    ptr.style.transition="none";
+  }
+},{passive:true});
+screenEl.addEventListener("touchmove",e=>{
+  if(!pActive)return;
+  pDist=e.touches[0].clientY-pStartY;
+  if(pDist>0){
+    const d=Math.min(pDist*0.5,110);
+    ptr.style.height=d+"px";
+  }
+},{passive:true});
+screenEl.addEventListener("touchend",()=>{
+  if(!pActive)return;pActive=false;
+  ptr.style.transition="";                    /* re-enable CSS glide */
+  if(pDist>PULL_THRESHOLD){doRefresh();}
+  else{ptr.style.height="";}                  /* glides back to 0 */
+  pDist=0;
+});
 
-/* Desktop: click the balance area or press R to trigger refresh (optional convenience). */
+/* Desktop convenience: press R (outside inputs) to trigger a refresh. */
 window.addEventListener("keydown",e=>{if(e.key==="r"&&currentView==="home"&&!refreshing&&!e.target.matches("input,textarea"))doRefresh();});
 
 function doRefresh(){
   if(refreshing)return;refreshing=true;
-  ptr.style.height="";ptr.style.opacity="";
+  /* Adding .spin overrides inline height (via !important) and reveals
+     the spinner. Height transitions from wherever the drag ended to 74. */
   ptr.classList.add("spin");
   const start=Date.now();
   Promise.resolve(safeFetchPrices()).finally(()=>{
     const elapsed=Date.now()-start;
     const wait=Math.max(0,MIN_REFRESH_MS-elapsed);
     setTimeout(()=>{
+      /* Clear inline height in the same tick as removing .spin so the
+         computed style animates 74 → 0 smoothly, no snap. */
       ptr.classList.remove("spin");
-      ptr.style.height="";ptr.style.opacity="";
+      ptr.style.height="";
       refreshing=false;
     },wait);
   });

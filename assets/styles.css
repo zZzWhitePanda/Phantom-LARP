@@ -36,12 +36,19 @@ body{background:#0a0a0a;font-family:var(--font);color:var(--text);
   touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 .screen::-webkit-scrollbar{display:none;}
 
-/* pull to refresh — iOS-style segmented spinner */
-.ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s ease;}
-.ptr.spin{height:56px!important;opacity:1!important;}
-.ios-spin{position:relative;width:22px;height:22px;display:inline-block;}
-.ios-spin i{position:absolute;top:0;left:50%;width:2px;height:6px;margin-left:-1px;
-  background:#c8c8cc;border-radius:1px;transform-origin:1px 11px;opacity:.15;}
+/* pull to refresh — iOS-style segmented spinner.
+   Height transitions so the screen glides back after refresh instead of
+   snapping. During a finger-drag we disable the transition inline so it
+   tracks 1:1. The spinner itself is hidden until .spin is applied — no
+   faint preview while the user is still pulling. */
+.ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  transition:height .38s cubic-bezier(.2,.8,.2,1);}
+.ptr .ios-spin{opacity:0;transition:opacity .18s ease;}
+.ptr.spin{height:74px!important;}
+.ptr.spin .ios-spin{opacity:1;}
+.ios-spin{position:relative;width:32px;height:32px;display:inline-block;}
+.ios-spin i{position:absolute;top:0;left:50%;width:3px;height:9px;margin-left:-1.5px;
+  background:#c8c8cc;border-radius:2px;transform-origin:1.5px 16px;opacity:.15;}
 .ios-spin i:nth-child(1){transform:rotate(0deg)}
 .ios-spin i:nth-child(2){transform:rotate(30deg)}
 .ios-spin i:nth-child(3){transform:rotate(60deg)}
