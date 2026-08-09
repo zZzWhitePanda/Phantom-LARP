@@ -495,7 +495,7 @@ select.s-in{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<sv
 .tk-chart-wrap svg{display:block;width:100%;height:100%;overflow:visible;}
 .tk-chart-line{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
 .tk-chart-line.past{stroke:var(--green);}
-.tk-chart-line.future{stroke:#3a3a40;}
+.tk-chart-line.future{stroke:#26262a;}
 .tk-chart-open{stroke:#3a3a40;stroke-width:1;stroke-dasharray:3 4;}
 .tk-chart-dot{fill:var(--green);}
 .tk-chart-scrub{stroke:#8a8a8e;stroke-width:1;}

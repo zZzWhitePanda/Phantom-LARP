@@ -32,24 +32,27 @@
     cap:$("tkCap"), trade:$("tkTrade"),
   };
 
-  /* CoinGecko timeframe → days argument. All timeframes use the raw
-     resolution CoinGecko returns for that window; we don't sub-slice
-     LIVE anymore so scrubbing has the same fine granularity as 1D. */
+  /* CoinGecko timeframe → days argument.
+     `interval` is how granular the displayed price/timestamp is while
+     scrubbing: the dot follows your finger smoothly, but the price
+     shown at the top only advances when you cross an interval bucket
+     boundary. This matches how the real app "sticks" between updates. */
+  const MIN=60*1000, HR=60*MIN, DAY=24*HR;
   const TIMEFRAMES = {
-    live:{days:1,   fmt:t=>fmtTime(t)},
-    "1d":{days:1,   fmt:t=>fmtTime(t)},
-    "1w":{days:7,   fmt:t=>fmtDateTime(t)},
-    "1m":{days:30,  fmt:t=>fmtDate(t)},
-    "1y":{days:365, fmt:t=>fmtDate(t)},
-    all:{days:"max",fmt:t=>fmtDate(t)},
+    live:{days:1,   interval:1*MIN,   fmt:t=>fmtTime(t)},
+    "1d":{days:1,   interval:15*MIN,  fmt:t=>fmtTime(t)},
+    "1w":{days:7,   interval:4*HR,    fmt:t=>fmtDateTime(t)},
+    "1m":{days:30,  interval:1*DAY,   fmt:t=>fmtDate(t)},
+    "1y":{days:365, interval:7*DAY,   fmt:t=>fmtDate(t)},
+    all:{days:"max",interval:28*DAY,  fmt:t=>fmtDate(t)},
   };
 
   const state={
     tokenIdx:-1,
     token:null,
     tf:"1w",
-    series:[],        /* [{t,p}] */
-    scrubI:-1,        /* -1 means "not scrubbing" */
+    series:[],          /* [{t,p}] */
+    scrubFrac:-1,       /* -1 = not scrubbing, else 0..1 across the chart */
     marketCap:null,
   };
 
@@ -65,6 +68,7 @@
     fillHeader();
     fillPositions();
     els.scrubLabel.classList.remove("on");
+    state.scrubFrac=-1;
     sheet.classList.add("open");
     loadChart();
   }
@@ -117,12 +121,18 @@
   }
 
   /* ---------- chart data ---------- */
+  /* Bump a request id every time a fetch kicks off so late responses
+     from a previous timeframe can't overwrite the current one. */
+  let fetchId=0;
   async function loadChart(){
     const t=state.token;
+    const myId=++fetchId;
     if(!t.cgId){
+      state.series=[];
       els.empty.style.display="flex";
       els.chart.style.display="none";
       els.cap.textContent="Market cap unavailable";
+      drawChart();
       return;
     }
     els.empty.style.display="none";
@@ -130,10 +140,12 @@
     const cfg=TIMEFRAMES[state.tf];
     const cacheKey=`${t.cgId}|${cfg.days}`;
     if(chartCache.has(cacheKey)){
-      state.series = sliceForTF(chartCache.get(cacheKey));
+      state.series = chartCache.get(cacheKey);
       drawChart();
     }else{
-      /* Show existing while fetching (chart may look empty on first open). */
+      /* Clear so stale data from a previous timeframe doesn't linger
+         (this was the reason ALL sometimes showed the previous chart). */
+      state.series=[];
       drawChart();
     }
     try{
@@ -143,17 +155,17 @@
       const r=await fetch(url,{headers});
       if(!r.ok) throw new Error("chart "+r.status);
       const d=await r.json();
+      if(myId!==fetchId) return;                 /* superseded by a newer click */
       const series=(d.prices||[]).map(p=>({t:p[0],p:p[1]}));
       chartCache.set(cacheKey,series);
-      state.series = sliceForTF(series);
+      state.series = series;
       drawChart();
     }catch(e){
-      if(!state.series.length){
+      if(myId===fetchId && !state.series.length){
         els.empty.style.display="flex";
         els.chart.style.display="none";
       }
     }
-    /* Market cap in a separate call (small, cached). */
     loadMarketCap(t.cgId);
   }
   function sliceForTF(series){return series;}
@@ -215,41 +227,93 @@
     }
     return d;
   }
+  /* Linear interpolation between two projected points at fraction fr. */
+  function lerpPt(a,b,fr){
+    return {
+      x:a.x+(b.x-a.x)*fr,
+      y:a.y+(b.y-a.y)*fr,
+      t:a.t+(b.t-a.t)*fr,
+      p:a.p+(b.p-a.p)*fr,
+    };
+  }
+  /* Interpolate a price value from the raw series at time T (ms). */
+  function priceAtTime(t){
+    const s=state.series;
+    if(!s.length) return 0;
+    if(t<=s[0].t) return s[0].p;
+    if(t>=s[s.length-1].t) return s[s.length-1].p;
+    /* Binary search for the neighbours. */
+    let lo=0, hi=s.length-1;
+    while(hi-lo>1){
+      const m=(lo+hi)>>1;
+      if(s[m].t<=t) lo=m; else hi=m;
+    }
+    const a=s[lo], b=s[hi];
+    const fr = (t-a.t)/(b.t-a.t);
+    return a.p+(b.p-a.p)*fr;
+  }
+
   function drawChart(){
     const svg=els.chart;
     const {pts,min,max,open}=project(state.series);
     if(!pts.length){svg.innerHTML="";return;}
-    /* The chart line stays green everywhere — direction only affects
-       the header's change label. */
-    const curI = state.scrubI>=0 ? state.scrubI : pts.length-1;
-    const dot = pts[curI];
     const openY = PAD_Y + (1-(open-min)/(max-min))*(VB_H-PAD_Y*2);
-    const past = pts.slice(0, curI+1);
-    const future = pts.slice(curI);
+
+    let dot, past, future, scrubbing = state.scrubFrac>=0;
+
+    if(!scrubbing){
+      /* Not scrubbing: dot sits at the latest point. */
+      dot = pts[pts.length-1];
+      past = pts;
+      future = [];
+    }else{
+      /* Scrubbing: dot follows the finger smoothly. We interpolate
+         between the two adjacent data points to get a fractional
+         position — no snapping means no flicker as it crosses points. */
+      const exactI = state.scrubFrac*(pts.length-1);
+      const i0 = Math.max(0,Math.floor(exactI));
+      const i1 = Math.min(pts.length-1,i0+1);
+      const fr = exactI-i0;
+      dot = i0===i1 ? pts[i0] : lerpPt(pts[i0],pts[i1],fr);
+      past = pts.slice(0,i0+1);
+      if(i0!==i1) past.push(dot);
+      future = [dot].concat(pts.slice(i1));
+    }
+
     let scrubLine="";
-    if(state.scrubI>=0){
+    if(scrubbing){
       scrubLine=`<line class="tk-chart-scrub" x1="${dot.x.toFixed(2)}" y1="${PAD_Y}" x2="${dot.x.toFixed(2)}" y2="${VB_H-PAD_Y}"/>`;
     }
     svg.innerHTML =
       `<line class="tk-chart-open" x1="${PAD_X}" y1="${openY.toFixed(2)}" x2="${VB_W-PAD_X}" y2="${openY.toFixed(2)}"/>`+
-      `<path class="tk-chart-line future" d="${smoothPath(future)}"/>`+
+      (future.length>1?`<path class="tk-chart-line future" d="${smoothPath(future)}"/>`:"")+
       `<path class="tk-chart-line past" d="${smoothPath(past)}"/>`+
       scrubLine+
       `<circle class="tk-chart-dot" cx="${dot.x.toFixed(2)}" cy="${dot.y.toFixed(2)}" r="5"/>`;
 
-    /* Header: current or scrubbed price against the period open. */
-    const pct = open>0 ? ((dot.p-open)/open)*100 : 0;
-    updatePriceHeader(dot.p, pct);
+    /* Snap the DISPLAYED price + timestamp to the timeframe's interval
+       bucket. The dot itself is drawn at the smooth position above,
+       but what the user reads stays put until they cross the next
+       interval boundary. */
+    const cfg=TIMEFRAMES[state.tf]||TIMEFRAMES["1w"];
+    let showP, showT;
+    if(!scrubbing){
+      showP = dot.p; showT = dot.t;
+    }else{
+      const snappedT = Math.floor(dot.t/cfg.interval)*cfg.interval;
+      showT = snappedT;
+      showP = priceAtTime(snappedT);
+    }
+    const pct = open>0 ? ((showP-open)/open)*100 : 0;
+    updatePriceHeader(showP, pct);
 
-    /* Floating scrub label above the vertical line. Only visible while
-       scrubbing. Position uses the SVG's proportional x → wrap pixels. */
-    if(state.scrubI>=0){
+    /* Floating scrub label above the vertical line. Its horizontal
+       position tracks the dot but is clamped to the chart width. */
+    if(scrubbing){
       const wrapW = els.chartWrap.clientWidth;
       const px = (dot.x/VB_W)*wrapW;
-      const cfg=TIMEFRAMES[state.tf]||TIMEFRAMES["1w"];
-      els.scrubLabel.textContent = cfg.fmt(new Date(dot.t));
+      els.scrubLabel.textContent = cfg.fmt(new Date(showT));
       els.scrubLabel.classList.add("on");
-      /* Clamp so the label stays fully inside the wrap. */
       const halfW = els.scrubLabel.offsetWidth/2;
       const left = Math.max(halfW+4, Math.min(wrapW - halfW - 4, px));
       els.scrubLabel.style.left = left + "px";
@@ -266,9 +330,8 @@
     const clientX = (e.touches?e.touches[0].clientX:e.clientX);
     const localX = clientX-rect.left;
     const frac = Math.max(0,Math.min(1, localX/rect.width));
-    const n=state.series.length;
-    if(!n) return;
-    state.scrubI = Math.round(frac*(n-1));
+    if(!state.series.length) return;
+    state.scrubFrac = frac;
     drawChart();
   }
   wrap.addEventListener("pointerdown",e=>{
@@ -280,7 +343,7 @@
   function endScrub(){
     if(!scrubbing) return;
     scrubbing=false;
-    state.scrubI=-1;
+    state.scrubFrac=-1;
     drawChart();
     els.scrubLabel.classList.remove("on");
   }
