@@ -483,6 +483,13 @@
         <div class="s-label">Custom Tokens (Ethereum)</div>
         <div class="s-add"><input class="s-in" id="addEth" placeholder="Add ETH token by contract address" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="s-add-btn" data-add="ethereum" type="button">Add</button></div>
 
+        <div class="s-label">Auto Balance on Refresh</div>
+        <div class="s-row"><span class="s-k">Token</span><select class="s-in" id="autoTokenSel"></select></div>
+        <div class="s-row"><span class="s-k" id="autoSymLabel">+</span><input class="s-in" id="autoAmt" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+        <div class="s-row"><span class="s-k">Every</span><input class="s-in" id="autoEvery" inputmode="numeric" placeholder="1" autocomplete="off"><span class="s-k-suffix">refresh(es)</span></div>
+        <div class="s-auto-progress">Progress<b id="autoProgress">0 / 1</b></div>
+        <button class="s-auto-reset" id="autoReset" type="button">Reset Counter &amp; Clear</button>
+
         <div class="s-label">CoinGecko API</div>
         <div class="s-row"><span class="s-k">Key</span><input class="s-in" id="setKey" placeholder="Optional — lifts rate limits" autocomplete="off" spellcheck="false"></div>
 

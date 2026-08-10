@@ -6,10 +6,11 @@
 const ICONS = {
   ETH:  `<span class="ico" style="background:#fff"><svg viewBox="0 0 32 32" width="28" height="28"><polygon points="16,4 16,13 23,16.5" fill="#343434"/><polygon points="16,4 9,16.5 16,13" fill="#8c8c8c"/><polygon points="16,21 16,28 23,17.9" fill="#343434"/><polygon points="16,28 16,21 9,17.9" fill="#8c8c8c"/><polygon points="16,19.7 23,16.5 16,13" fill="#131313"/><polygon points="16,13 9,16.5 16,19.7" fill="#393939"/></svg></span>`,
   SOL:  `<span class="ico"><img src="assets/coins/sol.png" alt="" draggable="false"></span>`,
+  BTC:  `<span class="ico" style="background:#f7931a;color:#fff;font-weight:800;font-size:26px;display:flex;align-items:center;justify-content:center;">&#8383;</span>`,
+  MON:  `<span class="ico" style="background:#000;color:#7c3aed;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;border:1px solid #2b1f4d;">M</span>`,
+  POL:  `<span class="ico" style="background:#8247e5;color:#fff;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;">P</span>`,
   USDT: `<span class="ico"><img src="assets/coins/usdt.png" alt="" draggable="false"><span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
   USDC: `<span class="ico"><img src="assets/coins/usdc.png" alt="" draggable="false"><span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
-  DOGE: `<span class="ico" style="background:#111;color:#fff;font-size:11px">DOGE<span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
-  HAT:  `<span class="ico" style="background:#111;color:#fff;font-size:12px">HAT<span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
 };
 const PERP_ICON = {
   BTC:  `<span class="pico" style="background:#f7931a;color:#fff;font-size:24px;font-weight:800">&#8383;</span>`,
@@ -244,8 +245,77 @@ function openSettings(){
   document.getElementById("setKey").value=draft.cgKey||"";
   document.getElementById("addSol").value="";document.getElementById("addEth").value="";
   renderTokenSettings();
+  renderAutoPanel();
   openVeil("settings");
 }
+
+/* ---- Auto Balance panel ----
+   One dropdown to pick a token from the current wallet, then edit
+   its autoAmount + autoEvery + see progress. Everything writes to
+   draft.tokens[selectedIdx] and gets applied when Save is pressed. */
+let autoSelIdx = 0;
+function renderAutoPanel(){
+  const sel=document.getElementById("autoTokenSel");
+  if(!sel) return;
+  sel.innerHTML="";
+  draft.tokens.forEach((t,i)=>{
+    const o=document.createElement("option");
+    o.value=String(i); o.textContent=`${t.sym} — ${t.name}`;
+    sel.appendChild(o);
+  });
+  if(!draft.tokens.length){
+    /* No tokens at all — clear the panel and bail. */
+    document.getElementById("autoSymLabel").textContent="+";
+    document.getElementById("autoAmt").value="";
+    document.getElementById("autoEvery").value="";
+    document.getElementById("autoProgress").textContent="0 / 1";
+    return;
+  }
+  if(autoSelIdx>=draft.tokens.length) autoSelIdx=0;
+  sel.value=String(autoSelIdx);
+  loadAutoFields();
+}
+function loadAutoFields(){
+  const t=draft.tokens[autoSelIdx]; if(!t) return;
+  if(t.autoAmount==null) t.autoAmount="0";
+  if(t.autoEvery==null)  t.autoEvery=1;
+  if(t.autoProgress==null) t.autoProgress=0;
+  document.getElementById("autoSymLabel").textContent = `${t.sym} +`;
+  document.getElementById("autoAmt").value = t.autoAmount;
+  document.getElementById("autoEvery").value = t.autoEvery;
+  updateAutoProgressLabel();
+}
+function updateAutoProgressLabel(){
+  const t=draft.tokens[autoSelIdx]; if(!t) return;
+  const every=Math.max(1, parseInt(t.autoEvery)||1);
+  document.getElementById("autoProgress").textContent = `${t.autoProgress||0} / ${every}`;
+}
+document.getElementById("autoTokenSel").addEventListener("change",function(){
+  autoSelIdx = +this.value;
+  loadAutoFields();
+});
+document.getElementById("autoAmt").addEventListener("input",function(){
+  const t=draft.tokens[autoSelIdx]; if(!t) return;
+  t.autoAmount = this.value;
+});
+document.getElementById("autoEvery").addEventListener("input",function(){
+  const t=draft.tokens[autoSelIdx]; if(!t) return;
+  t.autoEvery = Math.max(1, parseInt(this.value)||1);
+  updateAutoProgressLabel();
+});
+document.getElementById("autoReset").addEventListener("click",()=>{
+  const t=draft.tokens[autoSelIdx]; if(!t) return;
+  t.autoAmount="0";
+  t.autoProgress=0;
+  /* Apply immediately to live DATA so the counter really is cleared
+     even if the user closes Settings without hitting Save. */
+  if(DATA.tokens[autoSelIdx]){
+    DATA.tokens[autoSelIdx].autoAmount="0";
+    DATA.tokens[autoSelIdx].autoProgress=0;
+    save();
+  }
+  loadAutoFields();
+});
 document.getElementById("openSettings").addEventListener("click",()=>{closeDrawer();openSettings();});
 document.querySelectorAll('[data-open="settings"]').forEach(el=>el.addEventListener("click",()=>{closeSheet("manage");openSettings();}));
 
@@ -288,48 +358,18 @@ function renderTokenSettings(){
     if(t.autoProgress==null) t.autoProgress=0;
     const d=document.createElement("div");d.className="s-tok";
     d.innerHTML=`<div class="s-tok-head">${tokenIcon(t)}<span>${t.name} (${t.sym})</span><button class="s-tok-x" data-rm="${i}" type="button" aria-label="Remove">&#10005;</button></div>
-      <label class="s-tok-amt">Amount<input class="s-in" data-tok="${i}" inputmode="decimal" autocomplete="off"></label>
-      <div class="s-tok-auto">
-        <div class="s-tok-auto-label">Auto Balance on Refresh</div>
-        <div class="s-tok-auto-row"><span class="k">${t.sym} +</span><input data-auto-amt="${i}" inputmode="decimal" autocomplete="off"></div>
-        <div class="s-tok-auto-row"><span class="k">Every</span><input data-auto-every="${i}" inputmode="numeric" autocomplete="off"><span class="k-right">refresh(es)</span></div>
-        <div class="s-tok-auto-progress">Progress<b>${t.autoProgress||0} / ${Math.max(1,parseInt(t.autoEvery)||1)}</b></div>
-        <button class="s-tok-auto-reset" data-auto-reset="${i}" type="button">Reset Counter &amp; Clear</button>
-      </div>`;
+      <label class="s-tok-amt">Amount<input class="s-in" data-tok="${i}" inputmode="decimal" autocomplete="off"></label>`;
     el.appendChild(d);
   });
   el.querySelectorAll("input[data-tok]").forEach(inp=>{
     const i=+inp.dataset.tok;inp.value=(draft.tokens[i].amount!=null)?draft.tokens[i].amount:"";
     inp.addEventListener("input",()=>{draft.tokens[i].amount=inp.value;});
   });
-  el.querySelectorAll("input[data-auto-amt]").forEach(inp=>{
-    const i=+inp.dataset.autoAmt;inp.value=draft.tokens[i].autoAmount||"0";
-    inp.addEventListener("input",()=>{draft.tokens[i].autoAmount=inp.value;});
-  });
-  el.querySelectorAll("input[data-auto-every]").forEach(inp=>{
-    const i=+inp.dataset.autoEvery;inp.value=draft.tokens[i].autoEvery||1;
-    inp.addEventListener("input",()=>{
-      const v=Math.max(1, parseInt(inp.value)||1);
-      draft.tokens[i].autoEvery=v;
-      /* Live-update the Progress "X / Y" label without a full re-render. */
-      const wrap=inp.closest(".s-tok").querySelector(".s-tok-auto-progress b");
-      if(wrap) wrap.textContent = (draft.tokens[i].autoProgress||0)+" / "+v;
-    });
-  });
-  el.querySelectorAll("[data-auto-reset]").forEach(b=>b.addEventListener("click",()=>{
-    const i=+b.dataset.autoReset;
-    draft.tokens[i].autoProgress=0;
-    draft.tokens[i].autoAmount="0";
-    /* Also apply immediately to live DATA so the reset takes effect
-       without waiting for Save. */
-    if(DATA.tokens[i]){
-      DATA.tokens[i].autoProgress=0;
-      DATA.tokens[i].autoAmount="0";
-      save();
-    }
+  el.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{
+    draft.tokens.splice(+b.dataset.rm,1);
     renderTokenSettings();
+    renderAutoPanel();       /* keep dropdown in sync after a delete */
   }));
-  el.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{draft.tokens.splice(+b.dataset.rm,1);renderTokenSettings();}));
 }
 
 /* ---- add custom token by contract address ---- */

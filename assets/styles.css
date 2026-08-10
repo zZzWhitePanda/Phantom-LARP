@@ -329,17 +329,11 @@ select.s-in{padding-right:38px;background-image:url("data:image/svg+xml;utf8,<sv
 .s-tok-head .badge{display:none;}
 .s-tok-x{margin-left:auto;background:#2a1f1f;color:#ff7b7b;border:0;border-radius:8px;width:26px;height:26px;font-size:13px;cursor:pointer;}
 .s-tok-amt{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px;font-weight:600;}
-.s-tok-auto{margin-top:14px;padding-top:12px;border-top:1px solid #262629;}
-.s-tok-auto-label{color:var(--accent);font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin-bottom:10px;}
-.s-tok-auto-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--muted);font-size:14px;font-weight:600;}
-.s-tok-auto-row .k{flex:0 0 auto;min-width:56px;}
-.s-tok-auto-row .k-right{flex:0 0 auto;color:var(--muted);font-size:13px;font-weight:500;}
-.s-tok-auto-row input{flex:1;background:#242429;border:1px solid #303036;border-radius:10px;color:#fff;font-family:var(--font);font-size:14px;font-weight:600;padding:9px 12px;outline:none;-webkit-appearance:none;appearance:none;min-width:0;}
-.s-tok-auto-row input:focus{border-color:var(--accent);}
-.s-tok-auto-progress{color:var(--muted);font-size:13px;font-weight:600;margin:10px 0 6px;}
-.s-tok-auto-progress b{color:#fff;font-weight:700;margin-left:6px;}
-.s-tok-auto-reset{width:100%;background:transparent;color:var(--red);border:0;padding:10px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;margin-top:2px;border-radius:8px;}
-.s-tok-auto-reset:active{opacity:.55;}
+.s-k-suffix{flex:0 0 auto;color:var(--muted);font-size:13px;font-weight:500;}
+.s-auto-progress{color:var(--muted);font-size:13px;font-weight:600;margin:10px 2px 6px;}
+.s-auto-progress b{color:#fff;font-weight:700;margin-left:6px;}
+.s-auto-reset{width:100%;background:transparent;color:var(--red);border:0;padding:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;border-radius:10px;}
+.s-auto-reset:active{opacity:.55;}
 .s-add{display:flex;gap:8px;margin-bottom:12px;}
 .s-add-btn{flex:0 0 auto;background:var(--accent);color:#241a44;border:0;border-radius:12px;padding:0 16px;font-family:var(--font);font-weight:800;font-size:14px;cursor:pointer;}
 .s-add-btn[disabled]{opacity:.5;}
