@@ -7,8 +7,19 @@ const ICONS = {
   ETH:  `<span class="ico" style="background:#fff"><svg viewBox="0 0 32 32" width="28" height="28"><polygon points="16,4 16,13 23,16.5" fill="#343434"/><polygon points="16,4 9,16.5 16,13" fill="#8c8c8c"/><polygon points="16,21 16,28 23,17.9" fill="#343434"/><polygon points="16,28 16,21 9,17.9" fill="#8c8c8c"/><polygon points="16,19.7 23,16.5 16,13" fill="#131313"/><polygon points="16,13 9,16.5 16,19.7" fill="#393939"/></svg></span>`,
   SOL:  `<span class="ico"><img src="assets/coins/sol.png" alt="" draggable="false"></span>`,
   BTC:  `<span class="ico" style="background:#f7931a;color:#fff;font-weight:800;font-size:26px;display:flex;align-items:center;justify-content:center;">&#8383;</span>`,
-  MON:  `<span class="ico" style="background:#000;color:#7c3aed;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;border:1px solid #2b1f4d;">M</span>`,
-  POL:  `<span class="ico" style="background:#8247e5;color:#fff;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;">P</span>`,
+  /* Monad brand: deep violet plate with a stylised light-purple mark
+     (approximating the double-curve monogram from their identity). */
+  MON:  `<span class="ico" style="background:#200052;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+    <svg viewBox="0 0 32 32" width="24" height="24">
+      <path d="M16 3.5C9.1 3.5 3.5 9.1 3.5 16S9.1 28.5 16 28.5 28.5 22.9 28.5 16 22.9 3.5 16 3.5zm-4.7 7.1c1.6 1.6 2.9 4 3.7 6.8-.9.6-1.9 1-3 1-2.5 0-4.6-2.1-4.6-4.6 0-1.3.5-2.4 1.3-3.2.8.0 1.7-.0 2.6.0zm9.4 0c.9 0 1.8 0 2.6 0 .8.8 1.3 1.9 1.3 3.2 0 2.5-2.1 4.6-4.6 4.6-1.1 0-2.1-.4-3-1 .8-2.8 2.1-5.2 3.7-6.8zM16 22.7c1.4 1.4 2.7 2.5 3.9 3.2-1.2.4-2.5.6-3.9.6s-2.7-.2-3.9-.6c1.2-.7 2.5-1.8 3.9-3.2z" fill="#836EF9"/>
+    </svg>
+  </span>`,
+  /* Polygon (POL) — the classic overlapping-hex mark, on white plate. */
+  POL:  `<span class="ico" style="background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+    <svg viewBox="0 0 38.4 33.5" width="28" height="24">
+      <path fill="#8247E5" d="M29 10.2c-.7-.4-1.6-.4-2.4 0L21 13.5l-3.8 2.1-5.5 3.3c-.7.4-1.6.4-2.4 0L5 16.3c-.7-.4-1.2-1.2-1.2-2.1v-5c0-.8.4-1.6 1.2-2.1l4.3-2.5c.7-.4 1.6-.4 2.4 0L16 7.2c.7.4 1.2 1.2 1.2 2.1v3.3l3.8-2.2V7c0-.8-.4-1.6-1.2-2.1l-8-4.7c-.7-.4-1.6-.4-2.4 0L1.2 5C.4 5.4 0 6.2 0 7v9.4c0 .8.4 1.6 1.2 2.1l8.1 4.7c.7.4 1.6.4 2.4 0l5.5-3.2 3.8-2.2 5.5-3.2c.7-.4 1.6-.4 2.4 0l4.3 2.5c.7.4 1.2 1.2 1.2 2.1v5c0 .8-.4 1.6-1.2 2.1L27 28c-.7.4-1.6.4-2.4 0l-4.3-2.5c-.7-.4-1.2-1.2-1.2-2.1v-3.3l-3.8 2.2V26c0 .8.4 1.6 1.2 2.1l8.1 4.7c.7.4 1.6.4 2.4 0l8.1-4.7c.7-.4 1.2-1.2 1.2-2.1V16.6c0-.8-.4-1.6-1.2-2.1L29 10.2z"/>
+    </svg>
+  </span>`,
   USDT: `<span class="ico"><img src="assets/coins/usdt.png" alt="" draggable="false"><span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
   USDC: `<span class="ico"><img src="assets/coins/usdc.png" alt="" draggable="false"><span class="badge"><svg viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5L18 12l-6 3.5L6 12z" fill="#dcdce0"/><path d="M12 16.7L18 13l-6 8.3L6 13z" fill="#b4b4ba"/></svg></span></span>`,
 };
