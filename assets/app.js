@@ -27,10 +27,13 @@ const DEFAULT_DATA = {
   emoji:"👻", username:"sample", name:"Main", currency:"USD",
   cash:"0.00", balanceVisible:true, bio:"", cgKey:"",
   tokens:[
-    {sym:"ETH",  name:"Ethereum",  cgId:"ethereum", amount:"0.00158", v:true},
-    {sym:"SOL",  name:"Solana",    cgId:"solana",   amount:"0.02504", v:true},
-    {sym:"USDT", name:"Tether USD",cgId:"tether",   amount:"0.72",    v:true},
-    {sym:"USDC", name:"USDC",      cgId:"usd-coin", amount:"0.27218", v:true},
+    {sym:"ETH",  name:"Ethereum", cgId:"ethereum",              amount:"0", v:true, autoAmount:"0", autoEvery:1, autoProgress:0},
+    {sym:"BTC",  name:"Bitcoin",  cgId:"bitcoin",               amount:"0", v:true, autoAmount:"0", autoEvery:1, autoProgress:0},
+    {sym:"SOL",  name:"Solana",   cgId:"solana",                amount:"0", v:true, autoAmount:"0", autoEvery:1, autoProgress:0},
+    {sym:"MON",  name:"Monad",    cgId:null,        price:1,    amount:"0", v:true, autoAmount:"0", autoEvery:1, autoProgress:0},
+    {sym:"POL",  name:"Polygon",  cgId:"matic-network",         amount:"0", v:true, autoAmount:"0", autoEvery:1, autoProgress:0},
+    {sym:"USDT", name:"Tether",   cgId:"tether",                amount:"0", v:true, autoAmount:"0", autoEvery:1, autoProgress:0},
+    {sym:"USDC", name:"USDC",     cgId:"usd-coin",              amount:"0", v:true, autoAmount:"0", autoEvery:1, autoProgress:0},
   ],
   perps:[
     {sym:"BTC", lev:"40x", chg:"+0.25%", dir:"up"},
@@ -261,22 +264,71 @@ document.getElementById("setReset").addEventListener("click",()=>{
   }
 });
 document.getElementById("setSave").addEventListener("click",()=>{
-  DATA=structuredClone(draft);save();
+  /* Preserve live autoProgress values so opening Settings mid-cycle
+     and saving doesn't reset a partially-elapsed counter. */
+  const next=structuredClone(draft);
+  next.tokens.forEach((nt,i)=>{
+    const cur=DATA.tokens[i];
+    if(cur && (cur.cgId===nt.cgId || cur.sym===nt.sym)){
+      nt.autoProgress = cur.autoProgress || 0;
+    }else{
+      nt.autoProgress = 0;
+    }
+  });
+  DATA=next;save();
   refreshUI();safeFetchPrices();closeVeil("settings");
 });
 
 function renderTokenSettings(){
   const el=document.getElementById("setTokens");el.innerHTML="";
   draft.tokens.forEach((t,i)=>{
+    /* Ensure auto-balance fields exist on older wallets. */
+    if(t.autoAmount==null) t.autoAmount="0";
+    if(t.autoEvery==null)  t.autoEvery=1;
+    if(t.autoProgress==null) t.autoProgress=0;
     const d=document.createElement("div");d.className="s-tok";
     d.innerHTML=`<div class="s-tok-head">${tokenIcon(t)}<span>${t.name} (${t.sym})</span><button class="s-tok-x" data-rm="${i}" type="button" aria-label="Remove">&#10005;</button></div>
-      <label class="s-tok-amt">Amount<input class="s-in" data-tok="${i}" inputmode="decimal" autocomplete="off"></label>`;
+      <label class="s-tok-amt">Amount<input class="s-in" data-tok="${i}" inputmode="decimal" autocomplete="off"></label>
+      <div class="s-tok-auto">
+        <div class="s-tok-auto-label">Auto Balance on Refresh</div>
+        <div class="s-tok-auto-row"><span class="k">${t.sym} +</span><input data-auto-amt="${i}" inputmode="decimal" autocomplete="off"></div>
+        <div class="s-tok-auto-row"><span class="k">Every</span><input data-auto-every="${i}" inputmode="numeric" autocomplete="off"><span class="k-right">refresh(es)</span></div>
+        <div class="s-tok-auto-progress">Progress<b>${t.autoProgress||0} / ${Math.max(1,parseInt(t.autoEvery)||1)}</b></div>
+        <button class="s-tok-auto-reset" data-auto-reset="${i}" type="button">Reset Counter &amp; Clear</button>
+      </div>`;
     el.appendChild(d);
   });
   el.querySelectorAll("input[data-tok]").forEach(inp=>{
     const i=+inp.dataset.tok;inp.value=(draft.tokens[i].amount!=null)?draft.tokens[i].amount:"";
     inp.addEventListener("input",()=>{draft.tokens[i].amount=inp.value;});
   });
+  el.querySelectorAll("input[data-auto-amt]").forEach(inp=>{
+    const i=+inp.dataset.autoAmt;inp.value=draft.tokens[i].autoAmount||"0";
+    inp.addEventListener("input",()=>{draft.tokens[i].autoAmount=inp.value;});
+  });
+  el.querySelectorAll("input[data-auto-every]").forEach(inp=>{
+    const i=+inp.dataset.autoEvery;inp.value=draft.tokens[i].autoEvery||1;
+    inp.addEventListener("input",()=>{
+      const v=Math.max(1, parseInt(inp.value)||1);
+      draft.tokens[i].autoEvery=v;
+      /* Live-update the Progress "X / Y" label without a full re-render. */
+      const wrap=inp.closest(".s-tok").querySelector(".s-tok-auto-progress b");
+      if(wrap) wrap.textContent = (draft.tokens[i].autoProgress||0)+" / "+v;
+    });
+  });
+  el.querySelectorAll("[data-auto-reset]").forEach(b=>b.addEventListener("click",()=>{
+    const i=+b.dataset.autoReset;
+    draft.tokens[i].autoProgress=0;
+    draft.tokens[i].autoAmount="0";
+    /* Also apply immediately to live DATA so the reset takes effect
+       without waiting for Save. */
+    if(DATA.tokens[i]){
+      DATA.tokens[i].autoProgress=0;
+      DATA.tokens[i].autoAmount="0";
+      save();
+    }
+    renderTokenSettings();
+  }));
   el.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{draft.tokens.splice(+b.dataset.rm,1);renderTokenSettings();}));
 }
 
@@ -392,18 +444,45 @@ screenEl.addEventListener("touchend",()=>{
 /* Desktop convenience: press R (outside inputs) to trigger a refresh. */
 window.addEventListener("keydown",e=>{if(e.key==="r"&&currentView==="home"&&!refreshing&&!e.target.matches("input,textarea"))doRefresh();});
 
+/* Auto-balance on refresh:
+   For each token with autoAmount > 0, increment its progress counter.
+   When progress reaches autoEvery, add autoAmount to the token's
+   balance and reset the counter. Persists to storage. */
+function applyAutoBalances(){
+  let bumped=false;
+  DATA.tokens.forEach(t=>{
+    const add=parseFloat(t.autoAmount)||0;
+    const every=Math.max(1, parseInt(t.autoEvery)||1);
+    if(add<=0) return;
+    const prog=(parseInt(t.autoProgress)||0)+1;
+    if(prog>=every){
+      const cur=parseFloat(t.amount)||0;
+      const next=cur+add;
+      /* Trim trailing zeros without losing precision. */
+      t.amount = String(+next.toFixed(10)).replace(/(\.\d*?)0+$/,"$1").replace(/\.$/,"");
+      t.autoProgress=0;
+      bumped=true;
+    }else{
+      t.autoProgress=prog;
+    }
+  });
+  if(bumped) save();
+  return bumped;
+}
+
 function doRefresh(){
   if(refreshing)return;refreshing=true;
-  /* Adding .spin overrides inline height (via !important) and reveals
-     the spinner. Height transitions from wherever the drag ended to 74. */
   ptr.classList.add("spin");
+  const bumped=applyAutoBalances();
   const start=Date.now();
   Promise.resolve(safeFetchPrices()).finally(()=>{
+    /* fetchPrices already re-renders on success. If prices failed
+       but auto-balance moved the needle, re-render manually so the
+       new amount still shows up. */
+    if(bumped) refreshUI();
     const elapsed=Date.now()-start;
     const wait=Math.max(0,MIN_REFRESH_MS-elapsed);
     setTimeout(()=>{
-      /* Clear inline height in the same tick as removing .spin so the
-         computed style animates 74 → 0 smoothly, no snap. */
       ptr.classList.remove("spin");
       ptr.style.height="";
       refreshing=false;
